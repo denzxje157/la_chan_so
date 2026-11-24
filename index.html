@@ -1,0 +1,2894 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chống lừa 101 – Prototype chatbot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1E40AF;--navy2:#1D4ED8;--ink:#0F172A;--bg:#F8FAFC;--card:#FFFFFF;--muted:#64748B;--line:#E2E8F0;
+  --green:#10B981;--green-d:#059669;--green-l:#ECFDF5;--amber:#F59E0B;--amber-l:#FFFBEB;--red:#EF4444;--red-l:#FEF2F2;
+  --blue:#2563EB;--blue-l:#EFF6FF;--gold:#F59E0B;--flag:#FEF08A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans','Be Vietnam Pro',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#E0EAFC 0%,#CFDEF3 100%);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:56px;padding:24px;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input{font:inherit}
+
+/* ---------- desktop side panel ---------- */
+.side{max-width:330px;color:#334155;font-size:14px;line-height:1.6}
+.side .tag{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:#EFF6FF;border:1px solid #BFDBFE;padding:4px 10px;border-radius:99px;color:#1E40AF;font-weight:700}
+.side h1{color:#1E40AF;font-size:34px;line-height:1.15;margin:14px 0 10px;font-weight:800}
+.side h1 span{color:#0284C7}
+.side p{margin-bottom:14px}
+.side ul{list-style:none;margin:6px 0 18px}
+.side li{padding:8px 0;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;position:relative;padding-left:14px}
+.side li::before{content:'';position:absolute;left:0;width:5px;height:5px;border-radius:50%;background:#2563EB}
+.side li b{color:#0F172A;font-weight:700}
+.side kbd{background:#FFFFFF;border:1px solid #CBD5E1;border-radius:5px;padding:1px 6px;font-size:12px;color:#1E293B;font-family:inherit}
+.side .foot{font-size:12px;color:#64748B}
+
+/* ---------- phone ---------- */
+.phone{width:390px;height:min(844px,calc(100vh - 48px));background:var(--bg);border-radius:46px;box-shadow:0 0 0 10px #0F172A,0 0 0 12px #334155,0 30px 65px -12px rgba(15,23,42,.45);overflow:hidden;position:relative;flex-shrink:0}
+/* Custom sleek scrollbar for mobile feel (no thick Windows gray bar) */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:#94A3B8}
+@media (max-width:880px){.side{display:none}body{padding:0}.phone{width:100%;height:100dvh;border-radius:0;box-shadow:none}}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg)}
+.screen.active{display:flex}
+@keyframes fade{from{opacity:1;transform:none}to{opacity:1;transform:none}}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px 18px;border-radius:16px;font-weight:700;font-size:16px;transition:transform .12s,box-shadow .12s,background .12s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:linear-gradient(180deg,#2563EB,#1D4ED8);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.3)}
+.btn-primary:disabled{background:#B9C2D3;box-shadow:none;cursor:not-allowed}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+.btn-dark{background:var(--navy);color:#fff}
+
+/* ---------- HOME (LOGIN / BẮT ĐẦU) ---------- */
+#home{background:linear-gradient(175deg,#F0F7FF 0%,#FFFFFF 55%,#EFF6FF 100%);color:var(--ink);padding:46px 24px 24px}
+.logo-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:6px}
+.logo-shield{width:104px;height:104px;filter:drop-shadow(0 10px 24px rgba(37,99,235,.25));animation:float 3.2s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+.home-title{font-size:36px;font-weight:800;letter-spacing:-.02em;margin-top:16px;line-height:1;color:#1E40AF}
+.home-title span{color:#0284C7}
+.home-sub{color:#475569;margin-top:10px;font-size:14.5px;line-height:1.5}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 22px}
+.chip{background:#FFFFFF;border:1.5px solid #BFDBFE;border-radius:99px;padding:6px 12px;font-size:12px;color:#1D4ED8;font-weight:700;box-shadow:0 1px 2px rgba(37,99,235,.06)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:#1E293B;margin-bottom:6px;font-weight:700}
+.field input{width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid #CBD5E1;background:#FFFFFF;color:#0F172A;font-size:15px;outline:none}
+.field input:focus{border-color:#2563EB;background:#FFFFFF;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.field input::placeholder{color:#94A3B8}
+.home-note{font-size:11.5px;color:#64748B;text-align:center;margin-top:14px;line-height:1.5}
+.home-spacer{flex:1}
+
+/* ---------- MAP ---------- */
+#map{background:var(--bg)}
+.map-head{background:linear-gradient(160deg,#1E40AF 0%,#2563EB 60%,#3B82F6 100%);color:#fff;padding:46px 20px 20px;border-radius:0 0 26px 26px}
+.map-head .hi{font-size:13px;color:#DBEAFE;font-weight:600}
+.map-head h2{font-size:22px;font-weight:800;color:#FFFFFF;margin-top:3px}
+.progress{margin-top:14px;background:rgba(255,255,255,.22);height:8px;border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,#FDE047,#F59E0B);border-radius:99px;transition:width .6s}
+.map-stats{display:flex;justify-content:space-between;font-size:12px;color:#EFF6FF;font-weight:600;margin-top:8px}
+.map-list{flex:1;overflow-y:auto;padding:16px 16px 85px}
+.lvl{display:flex;align-items:center;gap:14px;background:#FFFFFF;border-radius:16px;padding:14px;margin-bottom:10px;width:100%;text-align:left;border:1.5px solid #E2E8F0;box-shadow:0 1px 3px rgba(15,23,42,.04);transition:all .15s}
+.lvl:hover{border-color:#93C5FD;box-shadow:0 4px 12px rgba(37,99,235,.08);transform:translateY(-1px)}
+.lvl:active{transform:scale(.99)}
+.lvl .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex-shrink:0}
+.lvl .ic svg{width:24px;height:24px}
+.lvl .tx{flex:1;min-width:0}
+.lvl .tx b{display:block;font-size:14.5px;font-weight:700;line-height:1.35;color:#0F172A}
+.lvl .tx small{display:block;color:#64748B;font-size:11.5px;margin-top:3px;font-weight:500}
+.lvl .st{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.st.new{background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE}
+.st.ok{background:#ECFDF5;color:#059669;border:1px solid #A7F3D0}
+.st.mid{background:#FFFBEB;color:#D97706;border:1px solid #FDE68A}
+.st.bad{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+.map-foot{padding:12px 16px 22px;background:linear-gradient(180deg,rgba(238,242,248,0),var(--bg) 30%)}
+.map-foot small{display:block;text-align:center;color:var(--muted);font-size:12px;margin-top:8px}
+
+/* ---------- CHAT ---------- */
+#chat{background:#E9EEF6}
+.chat-head{display:flex;align-items:center;gap:10px;padding:48px 12px 12px;background:#fff;border-bottom:1px solid var(--line);position:relative;z-index:2}
+.icon-btn{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;color:var(--ink)}
+.icon-btn:hover{background:#F1F4FA}
+.icon-btn.on{background:var(--blue-l);color:var(--blue)}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:21px;flex-shrink:0;color:#fff}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who small{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plat{font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:3px 8px;border-radius:99px;background:#F1F4FA;color:#3B4A6B;white-space:nowrap}
+.scen-bar{background:#fff;padding:0 14px 10px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+.scen-bar .dots{display:flex;gap:4px;margin-left:auto}
+.scen-bar .dots i{width:7px;height:7px;border-radius:50%;background:#D5DCEA}
+.scen-bar .dots i.done{background:var(--green)}
+.scen-bar .dots i.cur{background:var(--blue);width:18px;border-radius:99px}
+.msgs{flex:1;overflow-y:auto;padding:16px 12px 10px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+.row{display:flex;gap:8px;align-items:flex-end;animation:pop .22s ease}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+.row.me{justify-content:flex-end}
+.row .mini{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex-shrink:0;color:#fff}
+.row.cont .mini{visibility:hidden}
+.bub{max-width:76%;padding:10px 13px;border-radius:18px;font-size:14.5px;line-height:1.45;background:#fff;box-shadow:0 1px 1px rgba(16,24,40,.05);word-wrap:break-word}
+.them .bub{border-bottom-left-radius:6px}
+.me .bub{background:#2E6BFF;color:#fff;border-bottom-right-radius:6px}
+.bub.raw{padding:0;background:none;box-shadow:none;max-width:82%}
+.sys{align-self:center;font-size:12px;color:#55607A;background:rgba(255,255,255,.75);padding:6px 12px;border-radius:99px;text-align:center;max-width:90%;animation:pop .22s ease}
+.typing{display:inline-flex;gap:4px;padding:13px 14px}
+.typing i{width:7px;height:7px;border-radius:50%;background:#AAB4C8;animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,60%,100%{opacity:.35;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+
+/* rich cards inside chat */
+.card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.06);font-size:13px;min-width:220px}
+.card .pad{padding:12px 14px}
+.call{display:flex;gap:12px;align-items:center;padding:12px 14px}
+.call .ci{width:40px;height:40px;border-radius:50%;background:#FDECEC;display:grid;place-items:center;font-size:18px}
+.call b{display:block;font-size:14px}
+.call small{color:var(--muted);font-size:12px;line-height:1.35;display:block}
+.bank{background:linear-gradient(135deg,#0E7A4E,#12B76A);color:#fff;padding:14px}
+.bank.out{background:linear-gradient(135deg,#7A2E2E,#C9473E)}
+.bank .lb{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.06em}
+.bank .amt{font-size:22px;font-weight:800;margin:4px 0}
+.bank small{font-size:12px;opacity:.9}
+.link .thumb{height:86px;background:linear-gradient(135deg,#FF5F6D,#FFC371);display:grid;place-items:center;font-size:36px}
+.link .thumb.blue{background:linear-gradient(135deg,#4776E6,#8E54E9)}
+.link .thumb.gray{background:linear-gradient(135deg,#485563,#29323c)}
+.link .dom{font-size:11.5px;color:var(--muted);text-transform:lowercase}
+.link b{display:block;font-size:14px;margin:2px 0}
+.doc{border:1px solid #E9D9C4;background:#FFFBF4}
+.doc .dh{background:#B42318;color:#fff;font-weight:800;font-size:12px;letter-spacing:.06em;text-align:center;padding:8px}
+.doc ul{list-style:none;padding:10px 14px;font-size:12.5px;line-height:1.7;color:#3D3426}
+.doc .stamp{margin:0 14px 12px auto;width:62px;height:62px;border:3px solid #D92D20;border-radius:50%;color:#D92D20;font-size:9px;font-weight:800;display:grid;place-items:center;text-align:center;transform:rotate(-14deg);opacity:.85;line-height:1.1}
+.page{border:1px solid var(--line)}
+.page .bar{background:#F3F5F9;padding:7px 10px;font-size:11px;color:#C62828;display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
+.page .fakebtn{display:block;text-align:center;background:#1877F2;color:#fff;border-radius:8px;padding:9px;font-weight:700;font-size:13px;margin-top:8px}
+.page .otp{display:flex;gap:5px;margin-top:8px}
+.page .otp i{flex:1;height:32px;border:1.5px solid var(--line);border-radius:7px}
+
+/* red flag reveal */
+.flag{transition:background .4s,box-shadow .4s;border-radius:4px}
+.revealed .flag{background:var(--flag);color:#3A2A00;box-shadow:0 0 0 2px var(--flag);font-weight:600}
+.me .flag{background:none!important;box-shadow:none!important;color:inherit!important}
+.flag-card{position:relative;transition:box-shadow .4s}
+.revealed .flag-card{box-shadow:0 0 0 3px var(--red),0 6px 16px rgba(229,72,77,.25);border-radius:16px}
+.revealed .flag-card::after{content:'🚩';position:absolute;top:-10px;right:-8px;font-size:18px}
+
+/* choice dock */
+.dock{background:#fff;border-top:1px solid var(--line);padding:12px 12px 18px;display:none;max-height:58%;overflow-y:auto}
+.dock.show{display:block;animation:up .25s ease}
+@keyframes up{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.dock .q{display:flex;gap:8px;align-items:center;font-weight:700;font-size:14px;margin:0 2px 10px}
+.dock .q .sh{width:26px;height:26px}
+.opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:11px 12px;border-radius:14px;border:1.5px solid var(--line);margin-bottom:8px;font-size:14px;line-height:1.4;background:#FAFBFD;transition:border-color .12s,background .12s}
+.opt:hover{border-color:var(--blue);background:var(--blue-l)}
+.opt .k{width:24px;height:24px;border-radius:8px;background:#E8EDF7;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;color:#3B4A6B}
+.opt:hover .k{background:var(--blue);color:#fff}
+.dock .wait{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:4px 2px}
+
+/* feedback sheet */
+.sheet-bg{position:absolute;inset:0;background:rgba(9,16,38,.45);display:none;z-index:10;align-items:flex-end}
+.sheet-bg.show{display:flex;animation:fade .2s}
+.sheet{background:#fff;width:100%;max-height:86%;overflow-y:auto;border-radius:26px 26px 0 0;padding:10px 20px 22px;animation:up .3s ease}
+.grab{width:40px;height:5px;background:#D5DCEA;border-radius:99px;margin:0 auto 14px}
+.verdict{display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;margin-bottom:14px}
+.verdict.good{background:var(--green-l)}.verdict.mid{background:var(--amber-l)}.verdict.bad{background:var(--red-l)}
+.verdict .em{font-size:34px}
+.verdict b{display:block;font-size:18px;font-weight:800}
+.verdict.good b{color:var(--green-d)}.verdict.mid b{color:#B54708}.verdict.bad b{color:#C62828}
+.verdict small{font-size:13px;color:#4A5571}
+.verdict .pts{margin-left:auto;text-align:right}
+.verdict .pts strong{display:block;font-size:26px;font-weight:800;line-height:1}
+.verdict .pts span{font-size:11px;color:var(--muted)}
+.sec{margin-bottom:14px}
+.sec h4{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;font-weight:700}
+.sec p{font-size:14.5px;line-height:1.55}
+.flags{list-style:none}
+.flags li{display:flex;gap:8px;font-size:14px;line-height:1.45;padding:6px 0;border-bottom:1px dashed var(--line)}
+.flags li:last-child{border:0}
+.rule{background:var(--navy);color:#fff;border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;font-size:14.5px;line-height:1.5;font-weight:500}
+.rule .sh{width:30px;height:30px;flex-shrink:0}
+.fact{font-size:12px;color:var(--muted);background:#F5F7FB;border-radius:12px;padding:10px 12px;line-height:1.5;margin-top:12px}
+.sheet .btns{display:flex;gap:10px;margin-top:16px}
+.sheet .btns .btn{flex:1}
+
+/* ---------- RESULT ---------- */
+#result{background:var(--bg)}
+.res-scroll{flex:1;overflow-y:auto;padding:52px 18px 24px;background:linear-gradient(180deg,#132B6B 0,#0B1B3F 290px,var(--bg) 290px) no-repeat,var(--bg)}
+.res-head{color:#fff;text-align:center;margin-bottom:16px}
+.res-head small{color:#A9B8E3;font-size:13px}
+.res-head h2{font-size:24px;font-weight:800;margin-top:4px}
+.cert-img{width:100%;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.35);display:block;background:#0B1B3F;aspect-ratio:1200/630}
+.share{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.share a,.share button{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;border-radius:14px;font-weight:700;font-size:14.5px;text-decoration:none;color:#fff}
+.share .fb{background:#1877F2}.share .zl{background:#0068FF}
+.share .cp{grid-column:1/-1;background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.panel{background:#fff;border-radius:18px;padding:16px;margin-bottom:12px}
+.panel h3{font-size:15px;font-weight:800;margin-bottom:10px}
+.bars .b{display:flex;align-items:center;gap:10px;font-size:13px;padding:5px 0}
+.bars .b span{width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bars .b em{flex:1;height:8px;background:#EDF1F7;border-radius:99px;overflow:hidden}
+.bars .b em i{display:block;height:100%;border-radius:99px}
+.bars .b strong{width:32px;text-align:right;font-size:12.5px}
+.rules5 li{list-style:none;display:flex;gap:10px;font-size:14px;line-height:1.45;padding:7px 0;border-bottom:1px solid var(--line)}
+.rules5 li:last-child{border:0}
+.rules5 li b{color:#C62828;font-weight:800;flex-shrink:0}
+.hot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hot div{background:#F5F7FB;border-radius:12px;padding:10px 12px;font-size:12px;color:var(--muted)}
+.hot div b{display:block;color:var(--ink);font-size:15px}
+.toast{position:absolute;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0E1630;color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:30;width:max-content;max-width:88%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.fail-box{background:#fff;border-radius:18px;padding:18px;text-align:center}
+.fail-box .em{font-size:44px}
+.fail-box h3{font-size:18px;margin:6px 0}
+.fail-box p{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:14px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- BOTTOM NAV BAR (ĐIỀU HƯỚNG CHÍNH) ---------- */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:66px;background:#fff;border-top:1px solid var(--line);display:none;align-items:center;justify-content:space-around;z-index:25;padding-bottom:4px}
+.bottom-nav.show{display:flex}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 14px;border-radius:12px;transition:color .15s,background .15s}
+.nav-item.active{color:var(--blue)}
+.nav-item svg{width:22px;height:22px;stroke-width:2.2;fill:none;stroke:currentColor}
+.nav-item.active svg{stroke:var(--blue)}
+
+/* ---------- NEW SCREENS SHARED STYLES ---------- */
+.screen-head{background:linear-gradient(160deg,#1E40AF 0%,#2563EB 60%,#3B82F6 100%);color:#fff;padding:46px 20px 20px;border-radius:0 0 26px 26px;flex-shrink:0}
+.screen-sub{font-size:11.5px;font-weight:800;letter-spacing:.08em;color:#93C5FD;text-transform:uppercase}
+.screen-head h2{font-size:22px;font-weight:800;margin-top:4px}
+.head-desc{font-size:12.5px;color:#DBEAFE;margin-top:4px;line-height:1.4}
+.screen-body{flex:1;overflow-y:auto;padding:16px 16px 85px;background:var(--bg)}
+
+/* Senior mode (Chế độ người cao tuổi) */
+.phone.senior{font-size:16.5px}
+.phone.senior .home-title{font-size:42px}
+.phone.senior .bub{font-size:16.5px;line-height:1.5}
+.phone.senior .btn{padding:18px 20px;font-size:18px}
+.phone.senior .lvl .tx b{font-size:17px}
+.phone.senior .opt{font-size:16px;padding:14px 14px}
+.phone.senior .check-res h4{font-size:19px}
+.phone.senior .check-res p{font-size:15px}
+.senior-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;background:#EFF6FF;color:#1E40AF;font-size:12px;font-weight:700;border:1.5px solid #BFDBFE;cursor:pointer;margin-top:6px;transition:all .15s}
+.senior-toggle:hover{background:#DBEAFE}
+.senior-toggle.active{background:#FEF08A!important;color:#854D0E!important;border-color:#FACC15!important;font-weight:800}
+.screen-head .senior-toggle{background:rgba(255,255,255,.2);color:#FFFFFF;border:1px solid rgba(255,255,255,.35)}
+.screen-head .senior-toggle:hover{background:rgba(255,255,255,.3)}
+
+/* Check Screen styles */
+.check-tabs{display:flex;gap:6px;background:rgba(0,0,0,.06);padding:4px;border-radius:12px;margin-bottom:12px}
+.c-tab{flex:1;padding:8px 4px;font-size:12px;font-weight:700;border-radius:9px;color:var(--muted);text-align:center;transition:.15s}
+.c-tab.active{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.input-wrap{position:relative;display:flex;align-items:center}
+.input-wrap input{width:100%;padding:14px 78px 14px 14px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-size:14.5px;outline:none}
+.input-wrap input:focus{border-color:var(--blue)}
+.input-wrap .act-btns{position:absolute;right:8px;display:flex;gap:4px}
+.input-wrap .mini-btn{width:32px;height:32px;border-radius:8px;background:#F1F4FA;display:grid;place-items:center;font-size:15px;border:1px solid var(--line)}
+.check-res{margin-top:14px;border-radius:18px;padding:16px;animation:none !important}
+.check-res.danger{background:var(--red-l);border:1.5px solid #FCA5A5;color:#991B1B}
+.check-res.warning{background:var(--amber-l);border:1.5px solid #FCD34D;color:#92400E}
+.check-res.safe{background:var(--green-l);border:1.5px solid #86EFAC;color:#166534}
+.check-res-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.check-res-head .badge{font-size:24px}
+.check-res-head b{font-size:17px;font-weight:800}
+.check-res p{font-size:13.5px;line-height:1.5;margin-bottom:10px;color:var(--ink)}
+.check-res .why{font-size:12px;opacity:.95;background:rgba(255,255,255,.75);padding:8px 10px;border-radius:10px}
+
+/* SOS Hỏi người thân */
+.sos-card{background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:1.5px solid #FDBA74;border-radius:18px;padding:16px;margin-top:16px}
+.sos-badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;background:#EA580C;color:#fff;padding:3px 8px;border-radius:6px;margin-bottom:8px}
+.sos-card h3{font-size:16px;font-weight:800;color:#9A3412;margin-bottom:4px}
+.sos-card p{font-size:12.5px;color:#7C2D12;line-height:1.45;margin-bottom:12px}
+.contact-item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px;border:1px solid #FED7AA}
+.ci-av{width:36px;height:36px;border-radius:50%;background:#FED7AA;display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.ci-info{flex:1;min-width:0}
+.ci-info b{display:block;font-size:13.5px;font-weight:700;color:var(--ink)}
+.ci-info small{display:block;font-size:11.5px;color:var(--muted)}
+.ci-acts{display:flex;gap:6px}
+.ci-act{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.ci-act.zalo{background:#0068FF;color:#fff}
+.ci-act.sms{background:#12B76A;color:#fff}
+.ci-act.tel{background:#DC2626;color:#fff}
+
+/* Report Form */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.form-control{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:14px;outline:none;font-family:inherit}
+.form-control:focus{border-color:var(--blue)}
+.upload-box{border:2px dashed #C9D6F5;border-radius:14px;padding:16px;text-align:center;cursor:pointer;background:#F8FAFD;color:#475467;font-size:13px;transition:.15s}
+.upload-box:hover{border-color:var(--blue);background:var(--blue-l)}
+.form-note{display:block;font-size:11.5px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.4}
+
+/* Stats Screen */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:#fff;border-radius:16px;padding:14px;border:1px solid var(--line)}
+.stat-card .sc-num{font-size:26px;font-weight:800;color:var(--navy);line-height:1}
+.stat-card .sc-lbl{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.35}
+.stat-card.red .sc-num{color:var(--red)}
+.stat-card.amber .sc-num{color:var(--amber)}
+.stat-card.blue .sc-num{color:var(--blue)}
+.dist-bars .d-row{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:6px 0}
+.dist-bars .d-row span{width:95px;flex-shrink:0}
+.dist-bars .d-row em{flex:1;height:8px;background:#EDF1F7;border-radius:99px;overflow:hidden}
+.dist-bars .d-row em i{display:block;height:100%;border-radius:99px}
+.dist-bars .d-row strong{width:45px;text-align:right;font-size:12px}
+.alert-item{background:#FFF9F2;border-left:3.5px solid var(--amber);padding:10px 12px;border-radius:0 12px 12px 0;margin-bottom:8px}
+.alert-item b{display:block;font-size:13px;color:#92400E;margin-bottom:3px}
+.alert-item p{font-size:12px;color:#78350F;line-height:1.4}
+
+
+/* ==================== ROLE SELECTION & MODAL STYLES ==================== */
+.role-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 16px 0;
+}
+.role-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  text-align: left;
+}
+.role-card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+.role-card.selected {
+  border-color: var(--blue);
+  background: var(--blue-l);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+.role-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.role-card.selected .role-icon {
+  background: #DBEAFE;
+}
+.role-info {
+  flex: 1;
+}
+.role-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.role-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.role-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.role-card.selected .role-check {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+.role-card.selected .role-check::after {
+  content: '✓';
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Sample chips for quick AI test */
+.sample-chips-wrap {
+  margin: 12px 0 8px 0;
+}
+.sample-chips-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sample-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sample-chip {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.sample-chip:hover {
+  background: var(--blue-l);
+  border-color: var(--blue);
+  color: var(--navy);
+}
+
+/* Modal styles */
+.modal-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-bg.show {
+  display: flex;
+}
+.modal-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+  max-width: 380px;
+  width: 100%;
+  padding: 22px 20px;
+  border: 1px solid var(--line);
+  position: relative;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+@keyframes modalPop {
+  0% { transform: scale(0.96); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.modal-head h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.modal-close {
+  background: #F1F5F9;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.modal-close:hover {
+  background: #E2E8F0;
+  color: var(--ink);
+}
+
+/* Receipt box */
+.receipt-box {
+  background: #F8FAFC;
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  text-align: left;
+  margin: 12px 0 16px 0;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.receipt-row:last-child {
+  margin-bottom: 0;
+}
+.receipt-row span {
+  color: var(--muted);
+}
+.receipt-row b {
+  color: var(--ink);
+}
+
+/* Top bar pills on map */
+.top-pill-btn {
+  font-size: 11.5px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.15s;
+}
+.top-pill-btn:hover {
+  opacity: 0.9;
+}
+.top-pill-sos {
+  background: #EF4444;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+.top-pill-user {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+
+.check-res {
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+  text-align: left;
+  line-height: 1.5;
+}
+.check-res.danger {
+  background: #FEF2F2 !important;
+  border: 1.5px solid #F87171 !important;
+  color: #1E293B !important;
+}
+.check-res.danger .check-res-head b {
+  color: #B91C1C !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+.check-res.danger p {
+  color: #1E293B !important;
+  font-size: 13px !important;
+  margin: 6px 0 !important;
+}
+.check-res.danger .why {
+  background: #FFFFFF !important;
+  border-left: 3.5px solid #DC2626 !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+.check-res.danger .why strong {
+  color: #991B1B !important;
+}
+
+.check-res.safe {
+  background: #ECFDF5 !important;
+  border: 1.5px solid #34D399 !important;
+  color: #1E293B !important;
+}
+.check-res.safe .check-res-head b {
+  color: #047857 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+.check-res.safe p {
+  color: #1E293B !important;
+  font-size: 13px !important;
+  margin: 6px 0 !important;
+}
+.check-res.safe .why {
+  background: #FFFFFF !important;
+  border-left: 3.5px solid #059669 !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  color: #065F46 !important;
+  font-size: 12px !important;
+}
+
+.check-res.warning {
+  background: #FFFBEB !important;
+  border: 1.5px solid #FBBF24 !important;
+  color: #1E293B !important;
+}
+.check-res.warning .check-res-head b {
+  color: #B45309 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+.check-res.warning p {
+  color: #1E293B !important;
+  font-size: 13px !important;
+  margin: 6px 0 !important;
+}
+.check-res.warning .why {
+  background: #FFFFFF !important;
+  border-left: 3.5px solid #D97706 !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  color: #78350F !important;
+  font-size: 12px !important;
+}
+
+
+.svg-ic {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+.card-box {
+  background: #FFFFFF;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.res-badge {
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 10px;
+  text-align: left;
+}
+.res-badge.red {
+  background: #FEF2F2;
+  border: 1.5px solid #FCA5A5;
+  color: #B91C1C;
+}
+.res-badge.amber {
+  background: #FFFBEB;
+  border: 1.5px solid #FCD34D;
+  color: #92400E;
+}
+.res-badge.green {
+  background: #ECFDF5;
+  border: 1.5px solid #6EE7B7;
+  color: #047857;
+}
+
+
+/* ==================== CLEAN COMPACT BUTTON ROWS (FIX UXUI) ==================== */
+.quick-check-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  width: 100%;
+}
+.act-btn {
+  height: 38px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+.act-btn.primary {
+  flex: 1.6;
+  background: var(--blue);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+.act-btn.primary:hover {
+  background: var(--navy2);
+}
+.act-btn.ghost {
+  flex: 1.3;
+  background: #F1F5F9;
+  border-color: var(--line);
+  color: var(--ink);
+}
+.act-btn.ghost:hover {
+  background: #E2E8F0;
+}
+.act-btn.delete-btn {
+  flex: 0.8;
+  color: var(--muted);
+}
+.act-btn.delete-btn:hover {
+  color: var(--ink);
+}
+
+.sos-modal-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+  width: 100%;
+}
+.sos-btn {
+  height: 40px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 0 12px;
+  border: none;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+.sos-btn.zalo {
+  flex: 1.5;
+  background: #059669;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+.sos-btn.zalo:hover {
+  background: #047857;
+}
+.sos-btn.tel {
+  flex: 1.2;
+  background: #DC2626;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+.sos-btn.tel:hover {
+  background: #B91C1C;
+}
+.sos-btn.close {
+  flex: 0.9;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid var(--line);
+}
+.sos-btn.close:hover {
+  background: #E2E8F0;
+  color: var(--ink);
+}
+
+
+/* ==================== COMPREHENSIVE SENIOR MODE (CHẾ ĐỘ CHỮ TO TOÀN DIỆN) ==================== */
+.phone.senior {
+  font-size: 16px !important;
+}
+.phone.senior .card-box {
+  padding: 16px !important;
+  border-width: 2px !important;
+  border-color: #CBD5E1 !important;
+}
+.phone.senior .card-title-row .title-left span {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+.phone.senior .card-title-row .badge-online {
+  font-size: 12px !important;
+  padding: 3px 9px !important;
+}
+.phone.senior p, 
+.phone.senior .head-desc,
+.phone.senior .card-box p {
+  font-size: 14.5px !important;
+  line-height: 1.55 !important;
+  color: #1E293B !important;
+}
+.phone.senior label,
+.phone.senior .form-group label {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  color: #0F172A !important;
+  margin-bottom: 5px !important;
+}
+.phone.senior input,
+.phone.senior select {
+  height: 48px !important;
+  font-size: 15px !important;
+  border-width: 2px !important;
+}
+.phone.senior textarea {
+  height: 95px !important;
+  font-size: 15px !important;
+  border-width: 2px !important;
+}
+.phone.senior .act-btn,
+.phone.senior .qc-btn,
+.phone.senior .sos-btn {
+  height: 44px !important;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+}
+.phone.senior .sample-chip {
+  font-size: 12.5px !important;
+  padding: 7px 12px !important;
+}
+.phone.senior #btnMic {
+  height: 44px !important;
+  font-size: 14px !important;
+}
+.phone.senior .screen-head h2 {
+  font-size: 22px !important;
+}
+.phone.senior .screen-sub {
+  font-size: 12px !important;
+}
+.phone.senior .map-item,
+.phone.senior .scen-card {
+  padding: 14px 12px !important;
+}
+.phone.senior .scen-title {
+  font-size: 16.5px !important;
+}
+.phone.senior .scen-sub {
+  font-size: 13.5px !important;
+}
+.phone.senior .bottom-nav .nav-item span {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+/* QC Results Action Buttons (Fix line wrapping in Image 1) */
+.qc-res-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  width: 100%;
+}
+.qc-btn {
+  height: 38px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 0 14px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+.qc-btn.speak {
+  flex: 1;
+  background: #FFFFFF;
+  border: 1.5px solid var(--line);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.qc-btn.speak:hover {
+  background: #F1F5F9;
+}
+.qc-btn.report {
+  flex: 1.3;
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+.qc-btn.report:hover {
+  background: #B91C1C;
+}
+
+/* Card title row for no-wrapping (Fix Image 2) */
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+.card-title-row .title-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.card-title-row .title-left span {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-title-row .badge-online {
+  font-size: 11px;
+  font-weight: 700;
+  color: #047857;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <span class="tag">Hackathon Đồng Nai · Đề T04</span>
+  <h1>Chống lừa <span>101</span></h1>
+  <p>Prototype chatbot mini-game: người chơi nhận tin nhắn lừa đảo mô phỏng từ các vụ có thật, chọn cách xử lý, nhận điểm, giải thích và chứng chỉ <b style="color: #00f">“Công dân số an toàn”</b>.</p>
+  <ul class="clean-list">
+    <li><span><b>10 kịch bản</b> · có phân nhánh 2 bước</span></li>
+    <li><span><b>Tự đánh dấu dấu hiệu lừa đảo</b> ngay trong đoạn chat sau mỗi lựa chọn</span></li>
+    <li><span><b>Chứng chỉ PNG 1200×630</b> chuẩn ảnh chia sẻ Facebook/Zalo</span></li>
+    <li><span>Phím <kbd>1</kbd>–<kbd>4</kbd> chọn đáp án · <kbd>Enter</kbd> tiếp tục</span></li>
+  </ul>
+  <p class="foot">Tất cả tên người, thương hiệu, số tài khoản, tên miền trong game đều là hư cấu, chỉ dùng để mô phỏng. Gặp sự cố thật: gọi <b style="color:#fff">113</b> hoặc đến Công an phường nơi cư trú.</p>
+</aside>
+
+<main class="phone" id="phone">
+
+  <!-- HOME -->
+    <section class="screen active" id="home" aria-label="Màn hình bắt đầu" style="padding:16px 18px 20px 18px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box">
+    <div style="text-align:center;margin-bottom:8px">
+      <svg viewBox="0 0 120 120" style="width:52px;height:52px;margin:0 auto 4px;display:block" aria-hidden="true">
+        <defs><linearGradient id="lgMain" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5BE39B"/><stop offset="1" stop-color="#0FA864"/></linearGradient></defs>
+        <path d="M60 6 L104 22 V58 C104 84 86 104 60 114 C34 104 16 84 16 58 V22 Z" fill="url(#lgMain)"/>
+        <path d="M60 18 L94 30 V58 C94 78 80 94 60 102 C40 94 26 78 26 58 V30 Z" fill="#0B1B3F" opacity=".22"/>
+        <path d="M40 60 L54 74 L82 44" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div style="font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-0.5px">Chống lừa <span style="color:var(--green)">101</span></div>
+      <p style="font-size:11.5px;color:var(--muted);margin:2px 0 6px 0;line-height:1.35">Né 10 chiêu lừa đảo online phổ biến nhất tại Đồng Nai</p>
+      <div class="chips" style="margin-bottom:6px;gap:4px">
+        <span class="chip" style="font-size:10px;padding:2px 8px">💬 10 tình huống</span>
+        <span class="chip" style="font-size:10px;padding:2px 8px">⏱ ~10 phút</span>
+        <span class="chip" style="font-size:10px;padding:2px 8px">🏅 Chứng chỉ số</span>
+      </div>
+    </div>
+
+    <form id="startForm" autocomplete="off" style="margin:0">
+      <div class="field" style="margin-bottom:6px">
+        <label for="inName" style="font-size:11.5px;font-weight:700">Họ và tên của bạn</label>
+        <input id="inName" maxlength="32" placeholder="VD: Bác Nguyễn Văn An / Minh Khang..." required style="height:36px;font-size:12.5px;padding:0 10px">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label for="inSchool" style="font-size:11.5px;font-weight:700">Trường học / Đơn vị / Phường xã</label>
+        <input id="inSchool" maxlength="40" placeholder="VD: Phường Trảng Dài / THPT Trấn Biên..." style="height:36px;font-size:12.5px;padding:0 10px">
+      </div>
+
+      <div style="font-size:11.5px;font-weight:700;color:var(--ink);margin:0 0 6px 0">Chọn nhóm người dùng:</div>
+      <div class="role-cards" id="roleSelector" style="gap:7px;margin:0 0 10px 0">
+        <div class="role-card" data-role="senior" style="padding:9px 12px;border-radius:12px">
+          <div class="role-icon" style="width:34px;height:34px;font-size:17px">👴</div>
+          <div class="role-info">
+            <div class="role-name" style="font-size:12.5px">Người cao tuổi</div>
+            <div class="role-desc" style="font-size:10.5px">Chữ to rõ ràng, hỗ trợ giọng đọc tiếng Việt, nút bấm lớn</div>
+          </div>
+          <div class="role-check" style="width:18px;height:18px"></div>
+        </div>
+
+        <div class="role-card selected" data-role="student" style="padding:9px 12px;border-radius:12px">
+          <div class="role-icon" style="width:34px;height:34px;font-size:17px">🎓</div>
+          <div class="role-info">
+            <div class="role-name" style="font-size:12.5px">Học sinh / Sinh viên</div>
+            <div class="role-desc" style="font-size:10.5px">Luyện phản xạ chống bẫy việc làm, giật đơn, link vé rẻ</div>
+          </div>
+          <div class="role-check" style="width:18px;height:18px"></div>
+        </div>
+
+        <div class="role-card" data-role="volunteer" style="padding:9px 12px;border-radius:12px">
+          <div class="role-icon" style="width:34px;height:34px;font-size:17px">🤝</div>
+          <div class="role-info">
+            <div class="role-name" style="font-size:12.5px">Tình nguyện viên / Cán bộ</div>
+            <div class="role-desc" style="font-size:10.5px">Tra cứu nhanh đối tượng, tiếp nhận tin báo, hỗ trợ dân</div>
+          </div>
+          <div class="role-check" style="width:18px;height:18px"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" type="submit" style="height:40px;font-size:13.5px;font-weight:700">Bắt đầu trải nghiệm →</button>
+      <button type="button" class="btn btn-ghost" id="btnQuickGuest" style="margin-top:5px;font-size:11.5px;padding:4px 8px;width:100%" onclick="quickGuestLogin()">⚡ Trải nghiệm nhanh (Khách)</button>
+    </form>
+  </section>
+
+  <!-- MAP -->
+  <section class="screen" id="map" aria-label="Chọn tình huống">
+    <div class="map-head">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="hi" id="mapHi" style="font-size:13px;font-weight:700">Xin chào</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button type="button" class="top-pill-btn top-pill-sos" onclick="openSosModal()" title="Cứu hộ khẩn cấp">🚨 SOS</button>
+          <button type="button" class="top-pill-btn top-pill-user" onclick="logout()" title="Đổi tài khoản">👤 Đổi</button>
+        </div>
+      </div>
+      <h2>Chọn tình huống</h2>
+      <div class="progress"><i id="mapBar" style="width:0%"></i></div>
+      <div class="map-stats"><span id="mapDone">0/8 hoàn thành</span><span id="mapScore">🛡️ 0 điểm khiên</span></div>
+    </div>
+    <div class="map-list" id="mapList"></div>
+  </section>
+
+  <!-- CHAT -->
+  <section class="screen" id="chat" aria-label="Tình huống">
+    <div class="chat-head">
+      <button class="icon-btn" id="btnBack" aria-label="Quay lại">←</button>
+      <div class="av" id="cAv"></div>
+      <div class="who"><b id="cName"></b><small id="cSub"></small></div>
+      <span class="plat" id="cPlat"></span>
+      <button class="icon-btn" id="btnFast" title="Tua nhanh hội thoại" aria-label="Tua nhanh">⏩</button>
+    </div>
+    <div class="scen-bar"><span id="cTag"></span><div class="dots" id="cDots"></div></div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="dock" id="dock"></div>
+    <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="result" aria-label="Kết quả">
+    <div class="res-scroll" id="resScroll"></div>
+  </section>
+
+  
+  <!-- CHECK SCREEN (Màn 1 & 3: Kiểm tra nhanh & Hỏi người thân) -->
+  <section class="screen" id="check" aria-label="Tra cứu an toàn số">
+    <div class="screen-head">
+      <div class="screen-sub">LÁ CHẮN SỐ ĐỒNG NAI</div>
+      <h2>Tra cứu an toàn số</h2>
+      <p class="head-desc">Tách bạch 2 công cụ tra cứu chuyên biệt giúp người dân và người cao tuổi dễ dàng sử dụng</p>
+      <div>
+        <button class="senior-toggle" id="btnSeniorCheck" onclick="toggleSenior()">👓 Chế độ Chữ to</button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <!-- KHỐI 1: TRA CỨU NHANH SĐT / STK / LINK (DÀNH CHO NGƯỜI CAO TUỔI) -->
+      <div class="card-box" style="margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:8px">
+          <svg class="svg-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span style="font-size:14px;font-weight:800;color:var(--navy)">1. Tra cứu SĐT / Tài khoản / Link web</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Bác hãy nhập số điện thoại hoặc số tài khoản đang phân vân vào đây:</p>
+        
+        <div class="form-group" style="margin-bottom:8px">
+          <input id="inQuickCheck" placeholder="VD: 0899214xxx hoặc 9704031182..." autocomplete="off" style="height:44px;font-size:14px;font-weight:600;border:1.5px solid var(--line);border-radius:10px;padding:0 12px">
+        </div>
+
+        <div class="quick-check-actions">
+          <button type="button" class="act-btn primary" id="btnDoQuickCheck" onclick="doQuickCheck()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Kiểm tra</span>
+          </button>
+          <button type="button" class="act-btn ghost" onclick="applySampleNumber()">
+            <span>Mẫu thử SĐT</span>
+          </button>
+          <button type="button" class="act-btn ghost delete-btn" onclick="$('inQuickCheck').value=''">
+            <span>Xóa</span>
+          </button>
+        </div>
+
+        <div id="quickCheckResult" class="res-badge" style="display:none;margin-top:10px">
+          <div class="head" id="qcIconText" style="font-size:13.5px;font-weight:800"></div>
+          <p id="qcDesc" style="font-size:12px;margin:4px 0 8px 0;line-height:1.45"></p>
+          <div class="qc-res-actions">
+            <button type="button" class="qc-btn speak" id="btnSpeakQc" onclick="speakQcResult()">
+              <span>🔊 Nghe đọc</span>
+            </button>
+            <button type="button" class="qc-btn report" id="btnForwardQc" style="display:none" onclick="forwardQcToReport()">
+              <span>🚨 Báo cáo số này</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI 2: PHÂN TÍCH TIN NHẮN / GIỌNG NÓI QUA AI SCANNER -->
+      <div class="card-box" style="margin-bottom:14px">
+        <div class="card-title-row">
+          <div class="title-left">
+            <svg class="svg-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>2. Quét tin nhắn qua AI</span>
+          </div>
+          <span class="badge-online">🟢 Trực tuyến</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Dán nội dung tin nhắn hoặc bấm Micro để nói trực tiếp:</p>
+
+        <textarea id="aiMsgInput" class="form-control" placeholder="Dán nội dung tin nhắn đáng ngờ vào đây..." style="width:100%;height:80px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:12.5px;line-height:1.45;resize:none;margin-bottom:8px"></textarea>
+
+        <!-- Tool row with Mic & Samples -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnMic" onclick="handleMicClick()" style="background:#FEF2F2;border-color:#FCA5A5;color:#B91C1C;font-weight:700">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            <span>Nhấn để nói</span>
+          </button>
+          <button type="button" class="sample-chip" onclick="applySampleAi('congan')">👮 Mẫu Công an</button>
+          <button type="button" class="sample-chip" onclick="applySampleAi('vieclam')">💼 Mẫu Việc làm</button>
+          <button type="button" class="sample-chip" onclick="applySampleAi('shopee')">🎯 Mẫu Shopee VIP</button>
+          <button type="button" class="sample-chip" onclick="applySampleAi('ngoai_te')">💌 Mẫu Quà ngoại</button>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btnAnalyzeAi" onclick="runAiMsgAnalysis()" style="height:42px;font-size:13.5px;font-weight:700">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Phân tích mức độ an toàn qua AI</span>
+        </button>
+
+        <!-- AI Result Box -->
+        <div id="aiResultBox" style="display:none;margin-top:12px;background:#F8FAFC;border:1.5px solid var(--line);border-radius:14px;padding:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span id="aiRiskBadge" style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px"></span>
+            <button type="button" class="btn-ghost btn-sm" id="btnSpeakAi" onclick="speakAiAnalysis()" style="padding:4px 9px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px">
+              🔊 <span>Đọc to</span>
+            </button>
+          </div>
+          <div id="aiSummary" style="font-size:13px;font-weight:800;margin:6px 0 4px 0"></div>
+          <ul id="aiFlags" style="font-size:12px;color:#334155;padding-left:16px;line-height:1.5;margin-bottom:8px"></ul>
+          <div id="aiAdvice" style="font-size:12px;background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;padding:8px 10px;border-radius:10px;line-height:1.45;margin-bottom:10px"></div>
+          
+          <button type="button" class="btn btn-danger btn-sm" id="btnForwardPolice" onclick="forwardAiToReport()" style="width:100%;font-weight:700">
+            🚨 Chuyển thông tin này sang Báo cáo Công an
+          </button>
+        </div>
+      </div>
+
+      <!-- KHỐI 3: SOS HỎI NGƯỜI THÂN (MÀN BẮT BUỘC) -->
+      <div class="sos-card">
+        <span class="sos-badge">🆘 HỎI Ý KIẾN NGƯỜI THÂN</span>
+        <h3>Bác đang phân vân cuộc gọi/tin nhắn?</h3>
+        <p>Đừng vội chuyển tiền! Hãy gửi ngay nội dung cho con cái hoặc cán bộ Đoàn xã hỗ trợ kiểm tra.</p>
+        <div class="contacts-list">
+          <div class="contact-item">
+            <div class="ci-av">👤</div>
+            <div class="ci-info"><b>Con trai (Nguyễn Tuấn)</b><small>0988 xxx 214 · Số liên hệ khẩn cấp</small></div>
+            <div class="ci-acts">
+              <button type="button" class="ci-act zalo" onclick="openSosModal()" style="border:none;cursor:pointer">Zalo</button>
+              <button type="button" class="ci-act sms" onclick="openSosModal()" style="border:none;cursor:pointer">SMS</button>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="ci-av" style="background:#EBF3FF;color:#2E6BFF">🛡️</div>
+            <div class="ci-info"><b>Cán bộ Đoàn xã Hóa An</b><small>Đội thanh niên tình nguyện hỗ trợ số</small></div>
+            <div class="ci-acts">
+              <a class="ci-act tel" href="tel:113">Gọi 113</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <!-- ==================== NEWS SCREEN: CẢNH BÁO TỪ BỘ CÔNG AN ==================== -->
+  <section class="screen" id="news" aria-label="Cảnh báo từ Bộ Công an">
+    <div class="screen-head">
+      <div class="screen-sub">THÔNG TIN CHÍNH THỐNG</div>
+      <h2>Cảnh báo Bộ Công an</h2>
+      <p class="head-desc">Cập nhật liên tục các thủ đoạn tội phạm mạng do Cục A05 và Công an Đồng Nai xác thực</p>
+      <div>
+        <button class="senior-toggle" id="btnSeniorNews" onclick="toggleSenior()">👓 Chế độ Chữ to</button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <!-- News 1 -->
+      <div class="card-box" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:800;color:#B91C1C;background:#FEE2E2;padding:3px 8px;border-radius:99px;letter-spacing:0.02em">🚨 KHẨN CẤP · CỤC A05</span>
+          <small style="font-size:11px;color:var(--muted)">Hôm nay</small>
+        </div>
+        <b style="font-size:14px;color:var(--ink);line-height:1.35;display:block;margin-bottom:5px">Cảnh báo cài đặt ứng dụng VNeID giả mạo (.APK) chiếm đoạt tài khoản ngân hàng</b>
+        <p style="font-size:12.5px;color:#475569;line-height:1.45;margin-bottom:10px">Kẻ gian lập website giả mạo Cổng Dịch vụ công, hướng dẫn người dân tải tệp APK ngoài kho ứng dụng. Mã độc chiếm quyền Trợ năng (Accessibility) để tự động chuyển sạch tiền vào ban đêm mà nạn nhân không hề hay biết.</p>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:12px" onclick="speakVoice('Cảnh báo khẩn cấp từ Cục An ninh mạng: Tuyệt đối không cài đặt tệp APK từ đường link lạ mạo danh VNeID hoặc Cổng dịch vụ công.')">🔊 Nghe đọc</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1.2;font-size:12px;color:var(--blue)" onclick="shareNewsContent('VNeID giả mạo')">💬 Gửi người thân</button>
+        </div>
+      </div>
+
+      <!-- News 2 -->
+      <div class="card-box" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:800;color:#C2410C;background:#FFEDD5;padding:3px 8px;border-radius:99px">⚠️ CÔNG AN ĐỒNG NAI</span>
+          <small style="font-size:11px;color:var(--muted)">2 ngày trước</small>
+        </div>
+        <b style="font-size:14px;color:var(--ink);line-height:1.35;display:block;margin-bottom:5px">Thủ đoạn gọi video Deepfake ghép mặt công an uy hiếp tống tiền học sinh, sinh viên</b>
+        <p style="font-size:12.5px;color:#475569;line-height:1.45;margin-bottom:10px">Kẻ xấu tạo video Deepfake giả mặc quân phục Cảnh sát, đọc lệnh bắt giam giả, ép nạn nhân thuê khách sạn cách ly gia đình rồi tống tiền phụ huynh số tiền lên tới hàng trăm triệu đồng.</p>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:12px" onclick="speakVoice('Công an Đồng Nai thông báo: Cơ quan công an thật tuyệt đối không làm việc, không lấy lời khai qua điện thoại hay mạng xã hội.')">🔊 Nghe đọc</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1.2;font-size:12px;color:var(--blue)" onclick="shareNewsContent('Deepfake Công an')">💬 Gửi người thân</button>
+        </div>
+      </div>
+
+      <!-- News 3 -->
+      <div class="card-box" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:800;color:#047857;background:#D1FAE5;padding:3px 8px;border-radius:99px">🛡️ BỘ TT&TT · AN TOÀN SỐ</span>
+          <small style="font-size:11px;color:var(--muted)">3 ngày trước</small>
+        </div>
+        <b style="font-size:14px;color:var(--ink);line-height:1.35;display:block;margin-bottom:5px">Cảnh giác bẫy Romance Scam (Thùng quà ngoại tệ) & Giật đơn ảo sàn TMĐT</b>
+        <p style="font-size:12.5px;color:#475569;line-height:1.45;margin-bottom:10px">Chiêu trò kết bạn qua Zalo/Facebook xưng là doanh nhân nước ngoài gửi quà giá trị khủng, sau đó mạo danh nhân viên hải quan đòi nộp phí hàng chục triệu đồng; hoặc bẫy giật đơn Shopee nạp combo đơn hàng.</p>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:12px" onclick="speakVoice('Cảnh báo: Không có món quà ngoại tệ nào phải nộp tiền phạt vào tài khoản cá nhân. Đây hoàn toàn là bẫy lừa đảo.')">🔊 Nghe đọc</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1.2;font-size:12px;color:var(--blue)" onclick="shareNewsContent('Romance Scam & Giật đơn')">💬 Gửi người thân</button>
+        </div>
+      </div>
+
+      <!-- Emergency Advice Box -->
+      <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:14px;padding:12px 14px;font-size:12px;color:#1E40AF;line-height:1.45">
+        <b>📞 ĐƯỜNG DÂY NÓNG TIẾP NHẬN:</b><br>
+        • Phòng An ninh mạng (PA05) Công an tỉnh Đồng Nai: <b>0693.480.199</b><br>
+        • Tổng đài Cảnh sát phản ứng nhanh: <b>113</b> (Miễn phí 24/7)
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORT SCREEN (Màn 2: Báo cáo trường hợp lừa đảo) -->
+  <section class="screen" id="report" aria-label="Báo cáo lừa đảo">
+    <div class="screen-head">
+      <div class="screen-sub">CÔNG AN TỈNH ĐỒNG NAI</div>
+      <h2>Báo cáo kẻ gian</h2>
+      <p class="head-desc">Tiếp nhận thông tin phản ánh tội phạm mạng để bảo vệ người dân Đồng Nai</p>
+    </div>
+    <div class="screen-body">
+      <form id="reportForm" onsubmit="handleReportSubmit(event)">
+        <div class="form-group">
+          <label>Hình thức lừa đảo</label>
+          <select id="repType" class="form-control" required>
+            <option value="">-- Chọn hình thức lừa đảo --</option>
+            <option value="congan">Giả danh Công an, Viện kiểm sát</option>
+            <option value="vieclam">Việc nhẹ lương cao, giật đơn online</option>
+            <option value="trungthuong">Tin nhắn trúng thưởng, link lạ</option>
+            <option value="tinhcam">Lừa đảo tình cảm, gửi thùng quà ngoại tệ</option>
+            <option value="batcoc">Bắt cóc online, tống tiền gia đình</option>
+            <option value="vaytien">Vay tiền online lãi suất 0%</option>
+            <option value="khac">Hình thức khác</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Thông tin đối tượng lừa đảo</label>
+          <input id="repTarget" class="form-control" placeholder="Số điện thoại, STK ngân hàng hoặc link web lừa đảo" required>
+        </div>
+        <div class="form-group">
+          <label>Địa bàn xảy ra tại Đồng Nai</label>
+          <select id="repLoc" class="form-control" required>
+            <option value="bienhoa">TP. Biên Hòa</option>
+            <option value="longkhanh">TP. Long Khánh</option>
+            <option value="trangbom">Huyện Trảng Bom</option>
+            <option value="longthanh">Huyện Long Thành</option>
+            <option value="nhontrach">Huyện Nhơn Trạch</option>
+            <option value="vinhcuu">Huyện Vĩnh Cửu</option>
+            <option value="khac">Khu vực khác</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mô tả chi tiết sự việc</label>
+          <textarea id="repDesc" class="form-control" rows="3" placeholder="Đối tượng nhắn tin/gọi điện nói gì, yêu cầu chuyển bao nhiêu tiền..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Bằng chứng (Ảnh chụp màn hình tin nhắn / chuyển khoản)</label>
+          <div class="upload-box" onclick="$('repFile').click()">
+            <input type="file" id="repFile" accept="image/*" style="display:none" onchange="previewUpload(event)">
+            <span id="uploadHint">📷 Bấm để tải ảnh chụp màn hình bằng chứng</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit" style="margin-top:10px">Gửi tin báo đến cơ quan chức năng</button>
+        <small class="form-note">🔒 Thông tin người báo được bảo mật tuyệt đối theo quy định của pháp luật.</small>
+      </form>
+    </div>
+  </section>
+
+  <!-- STATS SCREEN (Màn 6: Dashboard Đội tình nguyện Đồng Nai) -->
+  <section class="screen" id="stats" aria-label="Bản tin tình nguyện viên">
+    <div class="screen-head">
+      <div class="screen-sub">ĐỘI THANH NIÊN TÌNH NGUYỆN</div>
+      <h2>Bản tin An toàn số</h2>
+      <p class="head-desc">Số liệu thực tế phục vụ công tác tuyên truyền tại xã, phường Đồng Nai</p>
+    </div>
+    <div class="screen-body">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="sc-num">120</div>
+          <div class="sc-lbl">Lượt phản ánh trong tháng 11/2026</div>
+        </div>
+        <div class="stat-card red">
+          <div class="sc-num">35%</div>
+          <div class="sc-lbl">Đường dẫn giả mạo (Phishing)</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="sc-num">40%</div>
+          <div class="sc-lbl">Giả danh Công an / Viện kiểm sát</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="sc-num">25%</div>
+          <div class="sc-lbl">Tuyển CTV việc nhẹ lương cao</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <h3>📍 Địa bàn tiếp nhận phản ánh nhiều nhất</h3>
+        <div class="dist-bars">
+          <div class="d-row"><span>TP. Biên Hòa</span><em><i style="width:43%;background:#E5484D"></i></em><strong>52 vụ</strong></div>
+          <div class="d-row"><span>H. Trảng Bom</span><em><i style="width:23%;background:#F79009"></i></em><strong>28 vụ</strong></div>
+          <div class="d-row"><span>TP. Long Khánh</span><em><i style="width:15%;background:#2E6BFF"></i></em><strong>18 vụ</strong></div>
+          <div class="d-row"><span>H. Long Thành</span><em><i style="width:12%;background:#12B76A"></i></em><strong>14 vụ</strong></div>
+          <div class="d-row"><span>Khu vực khác</span><em><i style="width:7%;background:#69738C"></i></em><strong>8 vụ</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>🚨 Chiêu thức mới nổi cần lưu ý tuyên truyền</h3>
+        <div class="alert-item">
+          <b>1. Mạo danh ứng dụng VNeID mức 2</b>
+          <p>Kẻ gian gọi điện hướng dẫn cập nhật thông tin rồi gửi link tải tệp .APK độc hại để chiếm quyền điều khiển điện thoại.</p>
+        </div>
+        <div class="alert-item">
+          <b>2. "Bắt cóc online" nhắm vào học sinh, sinh viên</b>
+          <p>Dọa dính án ma túy, ép học sinh THPT thuê khách sạn tự cách ly, quay video khóc xin tiền rồi tống tiền gia đình.</p>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" onclick="toast('Đã tải tài liệu tuyên truyền cho Đội thanh niên tình nguyện!')" style="margin-top:6px">📥 Tải cẩm nang tuyên truyền xã/phường (PDF)</button>
+    </div>
+  </section>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item" id="navCheck" onclick="navTo('check')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Tra cứu</span>
+    </button>
+    <button class="nav-item active" id="navMap" onclick="navTo('map')">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Thao trường</span>
+    </button>
+    <button class="nav-item" id="navNews" onclick="navTo('news')">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>Cảnh báo</span>
+    </button>
+    <button class="nav-item" id="navReport" onclick="navTo('report')">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Báo cáo</span>
+    </button>
+    <button class="nav-item" id="navStats" onclick="navTo('stats')">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Đồng Nai</span>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+<!-- ==================== MODAL SOS (HỎI NGƯỜI THÂN KHẨN CẤP) ==================== -->
+
+</div>
+
+<!-- ==================== MODAL POLICE RECEIPT (PHIẾU TIẾP NHẬN TỐ GIÁC ĐIỆN TỬ) ==================== -->
+
+
+<!-- ==================== MODAL SOS (HỎI NGƯỜI THÂN KHẨN CẤP) ==================== -->
+<div class="modal-bg" id="modalSos" role="dialog" aria-modal="true" aria-labelledby="sosTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="sosTitle" style="color:#DC2626;font-size:15px;margin:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>CỨU HỘ & HỎI Ý KIẾN KHẨN CẤP</span>
+      </h3>
+      <button class="modal-close" onclick="closeSosModal()">✕</button>
+    </div>
+
+    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">
+      Khi nhận được cuộc gọi/tin nhắn hối thúc chuyển tiền hoặc đe dọa, <b>hãy bình tĩnh cúp máy</b> và gửi ngay cho người thân để kiểm tra giúp:
+    </p>
+
+    <div class="form-group" style="margin-bottom:8px">
+      <label style="font-size:11.5px;font-weight:700;color:var(--ink);display:block;margin-bottom:3px">Gửi cứu trợ đến ai?</label>
+      <select id="sosTargetSelect" class="form-control" style="width:100%;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:12px">
+        <option value="Con trai (Nguyễn Tuấn - 0988.214.xxx)">Con trai (Nguyễn Tuấn - 0988.214.xxx)</option>
+        <option value="Con gái (Nguyễn Mai - 0912.888.xxx)">Con gái (Nguyễn Mai - 0912.888.xxx)</option>
+        <option value="Đoàn thanh niên xã Hóa An">Đội Thanh niên tình nguyện xã Hóa An</option>
+        <option value="Trực ban Công an xã / phường">Trực ban Công an xã / phường</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label style="font-size:11.5px;font-weight:700;color:var(--ink);display:block;margin-bottom:3px">Tin nhắn khẩn cấp soạn sẵn:</label>
+      <textarea id="sosMessageBody" class="form-control" style="width:100%;height:75px;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:11.5px;line-height:1.4;resize:none" readonly>Con ơi, bố/mẹ vừa nhận cuộc gọi/tin nhắn lạ xưng là Công an đòi chuyển tiền gấp vào số tài khoản lạ. Con kiểm tra giúp bố/mẹ với, bố/mẹ chưa chuyển tiền!</textarea>
+    </div>
+
+    <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:7px 9px;font-size:11px;color:#991B1B;margin-bottom:12px">
+      🛡️ <b>Lời khuyên 3 KHÔNG:</b> KHÔNG chuyển tiền · KHÔNG đọc mã OTP · BÌNH TĨNH cúp máy!
+    </div>
+
+    <div class="sos-modal-actions">
+      <button type="button" class="sos-btn zalo" onclick="sendSosZalo()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Gửi qua Zalo</span>
+      </button>
+      <a href="tel:113" class="sos-btn tel">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>Gọi 113</span>
+      </a>
+      <button type="button" class="sos-btn close" onclick="closeSosModal()">
+        <span>Đóng</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL POLICE RECEIPT (PHIẾU TIẾP NHẬN TỐ GIÁC ĐIỆN TỬ) ==================== -->
+<div class="modal-bg" id="modalPoliceReceipt" role="dialog" aria-modal="true" aria-labelledby="recTitle">
+  <div class="modal-card" style="text-align:center">
+    <div style="width:46px;height:46px;border-radius:50%;background:#D1FADF;color:#027A48;display:grid;place-items:center;font-size:22px;margin:0 auto 8px;box-shadow:0 4px 10px rgba(2,122,72,0.2)">✓</div>
+    
+    <h3 id="recTitle" style="font-size:15px;font-weight:800;color:var(--ink);margin:0 0 3px 0">Tiếp nhận tin báo thành công!</h3>
+    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px 0">Hệ thống an ninh mạng đã ghi nhận thông tin tố giác của bạn.</p>
+
+    <div class="receipt-box">
+      <div class="receipt-row">
+        <span>Mã hồ sơ:</span>
+        <b id="recCode" style="color:#DC2626;font-family:monospace">#CADN-2026-8942</b>
+      </div>
+      <div class="receipt-row">
+        <span>Đơn vị thụ lý:</span>
+        <b style="color:var(--navy);font-size:11px">Phòng An ninh mạng (PA05) – CA Đồng Nai</b>
+      </div>
+      <div class="receipt-row">
+        <span>Đối tượng bị tố giác:</span>
+        <b id="recTargetVal">0899.214.xxx</b>
+      </div>
+      <div class="receipt-row">
+        <span>Thời gian tiếp nhận:</span>
+        <b id="recTime">24/11/2026</b>
+      </div>
+      <div class="receipt-row" style="margin-top:5px;padding-top:5px;border-top:1px dashed var(--line)">
+        <span>Trạng thái:</span>
+        <b style="color:#059669">🟢 Đang phân công cán bộ xác minh</b>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:6px">
+      <button type="button" class="btn btn-primary btn-sm" style="flex:1;font-size:12.5px" onclick="closeReceiptModal()">Lưu phiếu & Hoàn tất</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+/* ============================================================
+   NỘI DUNG KỊCH BẢN
+   Cú pháp trong text: [[...]] = dấu hiệu lừa đảo (tô vàng khi lộ đáp án)
+   {name} = tên người chơi, {NAME} = tên viết hoa
+   Mỗi option: say (tin của người chơi), res (diễn biến), next (bước tiếp) HOẶC pts + fb (kết thúc)
+   ============================================================ */
+const T = (text)=>({f:'them',text});
+const ME = (text)=>({f:'me',text});
+const SYS = (text)=>({f:'sys',text});
+const H = (html,flag)=>({f:'them',html,flag});
+
+const callCard=(t,s,ic='📹')=>`<div class="card call"><div class="ci">${ic}</div><div><b>${t}</b><small>${s}</small></div></div>`;
+const bankCard=(amt,content,out)=>`<div class="card bank ${out?'out':''}"><div class="lb">Biến động số dư</div><div class="amt">${amt}</div><small>ND: ${content}</small></div>`;
+const linkCard=(dom,title,desc,ic='🎁',cls='')=>`<div class="card link"><div class="thumb ${cls}">${ic}</div><div class="pad"><div class="dom">${dom}</div><b>${title}</b><small style="color:var(--muted)">${desc}</small></div></div>`;
+const docCard=(title,lines,stamp)=>`<div class="card doc"><div class="dh">${title}</div><ul>${lines.map(l=>`<li>${l}</li>`).join('')}</ul>${stamp?`<div class="stamp">${stamp}</div>`:''}</div>`;
+
+const SCENARIOS = [
+{
+  id:'cong-an', icon:'👮', color:'#2E4A9E', bg:'#E8EEFF', diff:'Khó',
+  title:'Cuộc gọi từ “công an”', tag:'Mạo danh cơ quan chức năng',
+  persona:{name:'Thượng úy Trần Minh Đức', sub:'Tài khoản mới · 0899 xxx 214', av:'👮'}, plat:'Zalo',
+  steps:[
+    { msgs:[
+        SYS('Hôm nay 21:47'),
+        H(callCard('Cuộc gọi video nhỡ','Tài khoản tạo 3 ngày trước · Ảnh đại diện mặc quân phục'),true),
+        T('Chào em {name}. Anh là [[Thượng úy Trần Minh Đức, Đội Điều tra – Công an phường]]. Em vui lòng nghe máy để làm việc.'),
+        T('Số CCCD của em đang [[đứng tên một tài khoản ngân hàng liên quan vụ rửa tiền 1,2 tỷ đồng]]. Hồ sơ đã chuyển Viện Kiểm sát.'),
+        H(docCard('QUYẾT ĐỊNH TẠM GIAM',['Bị can: {NAME}','Tội danh: Rửa tiền','Hiệu lực: sau 24 giờ'],'CÔNG AN<br>★'),true),
+        T('Vụ án đang trong giai đoạn bí mật. [[Em tuyệt đối không được kể với bố mẹ, thầy cô]], nếu không sẽ bị xử lý tội làm lộ bí mật điều tra.')
+      ],
+      q:'Tim bạn đập thình thịch. Bạn sẽ làm gì?',
+      opts:[
+        {t:'Hoảng quá – hỏi anh ấy em cần làm gì để chứng minh mình vô tội', say:'Dạ em không biết gì hết… em phải làm sao để chứng minh ạ? 😰', res:[T('Em bình tĩnh. Anh sẽ hướng dẫn em chứng minh trong sạch.')], next:1},
+        {t:'Gửi ảnh CCCD 2 mặt để “anh công an” kiểm tra giúp là nhầm người', say:'[Đã gửi 2 ảnh: CCCD mặt trước, mặt sau]', res:[T('Ok anh nhận rồi. Em chờ anh liên hệ tiếp, nhớ giữ bí mật.')], pts:10,
+         fb:'Ảnh CCCD 2 mặt là “chìa khoá” để kẻ gian mở tài khoản ngân hàng, ví điện tử, vay tiêu dùng hoặc đăng ký SIM đứng tên bạn. Bạn chưa mất tiền ngay, nhưng đã mất dữ liệu – và có thể bị liên lụy pháp lý về sau.'},
+        {t:'Không trả lời nữa, chặn tài khoản; kể ngay với bố mẹ và tự gọi Công an phường nơi cư trú để xác minh', say:'[Bạn chặn tài khoản và gọi cho mẹ]', res:[SYS('✅ Đã chặn · Đã báo cáo tài khoản giả mạo')], pts:100,
+         fb:'Chuẩn! Công an chỉ mời làm việc bằng giấy triệu tập gửi trực tiếp hoặc qua chính quyền địa phương – không “xử án” qua Zalo, không gửi lệnh bắt qua tin nhắn. Kể với người thân là cách phá thế “giữ bí mật” mà kẻ gian cố dựng lên.'},
+        {t:'Nhắn lại: “Anh gửi thẻ ngành cho em xem đã”', say:'Anh gửi thẻ ngành cho em xem đã ạ.', res:[H(docCard('GIẤY CHỨNG NHẬN',['Họ tên: Trần Minh Đức','Cấp bậc: Thượng úy','Số hiệu: 2xx-xxx'],'CAND'),true), T('Em thấy rồi chứ? Giờ em hợp tác với anh nhé.')], next:1}
+      ]},
+    { msgs:[
+        T('Để xác minh, em cần [[cài ứng dụng định danh bản mới]] theo đường link anh gửi rồi làm theo hướng dẫn.'),
+        H(linkCard('dinhdanh-bocongan.app','VNeID-update-v5.apk','Tệp cài đặt Android · 18,4 MB','📦','gray'),true),
+        T('Sau đó em [[chuyển toàn bộ số dư vào tài khoản tạm giữ của cơ quan điều tra]] để kiểm tra nguồn tiền. Trong sạch thì 24h hoàn lại.')
+      ],
+      q:'Bạn sẽ làm gì tiếp theo?',
+      opts:[
+        {t:'Làm theo: cài app và chuyển tiền để sớm được minh oan', say:'[Đã cài VNeID-update-v5.apk · Chuyển 8.350.000đ]', res:[SYS('⚠️ Ứng dụng xin quyền “Trợ năng” – điện thoại bắt đầu tự thao tác…')], pts:0,
+         fb:'Tệp .apk ngoài cửa hàng chính thức là mã độc: nó xin quyền Trợ năng để đọc màn hình, đọc OTP và tự chuyển tiền trong app ngân hàng. Không có cơ quan nào có “tài khoản tạm giữ” nhận tiền của người dân.'},
+        {t:'Chỉ chuyển một ít, giữ lại phần lớn cho an toàn', say:'[Chuyển khoản 1.000.000đ]', res:[T('Chưa đủ. Em phải chuyển thêm, nếu không hồ sơ sẽ chuyển truy nã.')], pts:5,
+         fb:'Không có chuyện “chuyển một ít cho an toàn”. Khi bạn đã chuyển, kẻ gian biết bạn sợ và sẽ ép tiếp. Mọi yêu cầu chuyển tiền để “chứng minh trong sạch” đều là lừa đảo.'},
+        {t:'Cài app nhưng nhất định không chuyển tiền', say:'[Đã cài VNeID-update-v5.apk]', res:[SYS('⚠️ App xin quyền Trợ năng, đọc tin nhắn, hiển thị trên ứng dụng khác…')], pts:15,
+         fb:'Cài app lạ đã là sập bẫy: mã độc có thể tự đọc OTP và rút tiền dù bạn không bấm chuyển. Nếu lỡ cài: bật chế độ máy bay, gọi hotline ngân hàng khoá tài khoản, gỡ app hoặc khôi phục cài đặt gốc.'},
+        {t:'Dừng lại. Không bấm link; kể với bố mẹ và đến trụ sở Công an gần nhất', say:'Em sẽ đến trực tiếp trụ sở công an để làm việc ạ.', res:[T('Alo? Em không được…'), SYS('🔇 Đối phương đã rời cuộc trò chuyện')], pts:70,
+         fb:'Bạn đã thoát an toàn – tốt lắm! Nhưng bạn đã “hợp tác” thêm một bước, đủ để kẻ gian khai thác thêm thông tin. Lần sau: dừng ngay từ tin nhắn đầu tiên khi ai đó xưng công an qua mạng.'}
+      ]}
+  ],
+  flags:['Xưng công an, liên hệ qua Zalo/số lạ, tài khoản mới tạo','Gửi “quyết định tạm giam”, “thẻ ngành” qua tin nhắn','Bắt giữ bí mật với gia đình = chiêu cô lập nạn nhân','Gửi link tải tệp .apk, đòi cài app “bản mới” ngoài App Store/Google Play','Yêu cầu chuyển tiền vào “tài khoản tạm giữ”'],
+  rule:'Công an thật mời làm việc bằng giấy triệu tập – KHÔNG xử lý vụ án qua điện thoại, Zalo, và KHÔNG BAO GIỜ yêu cầu chuyển tiền.',
+  fact:'Mạo danh công an là hình thức lừa đảo trực tuyến phổ biến nhất năm 2025 (khảo sát Hiệp hội An ninh mạng quốc gia – NCA).'
+},
+{
+  id:'viec-lam', icon:'💼', color:'#B54708', bg:'#FFF1DE', diff:'Trung bình',
+  title:'Việc nhẹ lương cao', tag:'Việc làm online · “làm nhiệm vụ”',
+  persona:{name:'Chị Ngọc – HR Tuyển CTV', sub:'Đang hoạt động', av:'💼'}, plat:'Telegram',
+  steps:[
+    { msgs:[
+        T('Chào {name} 👋 Bên chị đang tuyển [[CTV làm online tại nhà, chỉ cần điện thoại]], rất hợp sinh viên.'),
+        T('Công việc: thả tim, đặt đơn ảo giúp shop tăng tương tác. [[Hoa hồng 10–30%, thu nhập 300k–1 triệu/ngày]] 💰'),
+        T('Em làm thử nhiệm vụ đầu nhé: thả tim 3 video này rồi chụp màn hình gửi chị.'),
+        ME('[Đã gửi 3 ảnh chụp màn hình]'),
+        H(bankCard('+50.000đ','Thuong nhiem vu thu CTV2087'),true),
+        T('Thấy chưa, uy tín nha em 😍 Giờ chị thêm em vào [[nhóm VIP: nạp 500k làm nhiệm vụ đơn hàng, nhận về 650k ngay]].')
+      ],
+      q:'Bạn đã nhận 50k thật. Bạn quyết định?',
+      opts:[
+        {t:'Nạp 500k thử – đã nhận tiền thật rồi mà', say:'Ok chị, em nạp 500k nha.', res:[{f:'me',html:bankCard('−500.000đ','NAP NV VIP CTV2087',true)}], next:1},
+        {t:'Đòi hợp đồng lao động, mã số thuế công ty rồi mới làm', say:'Chị gửi em hợp đồng và mã số thuế công ty được không ạ?', res:[H(docCard('HỢP ĐỒNG CỘNG TÁC VIÊN',['Công ty TNHH TM-DV Ánh Dương Media','MST: 03xxxxxxxx','Đã ký & đóng dấu'],'ĐÃ<br>DUYỆT'),true), T('Đây em, công ty chị làm ăn đàng hoàng. Nạp nhanh kẻo hết suất nha!')], pts:55,
+         fb:'Bạn nghi ngờ là đúng hướng, nhưng hợp đồng, con dấu, mã số thuế đều làm giả được trong 5 phút. Nguyên tắc vàng: công việc nào bắt bạn NỘP TIỀN TRƯỚC để được làm là lừa đảo – không cần kiểm tra thêm.'},
+        {t:'Từ chối, không nạp đồng nào; báo cáo nhóm và cảnh báo bạn bè', say:'Em không làm nữa ạ.', res:[SYS('✅ Đã rời nhóm · Đã báo cáo tài khoản')], pts:100,
+         fb:'Xuất sắc! 50k ban đầu là “mồi” để bạn tin. Kịch bản “làm nhiệm vụ” luôn theo mô hình: trả thưởng nhỏ → nạp tiền nhiệm vụ lớn → khoá số dư, ép nạp thêm. Dừng ở đây, bạn mất 0 đồng.'},
+        {t:'Rủ bạn cùng phòng làm chung để nhận thưởng giới thiệu', say:'Chị ơi em rủ thêm bạn em được không?', res:[T('Được em! Mỗi bạn giới thiệu chị thưởng 100k 🥰')], pts:0,
+         fb:'Bạn vừa thành “cò mồi” bất đắc dĩ – kéo cả bạn mình vào bẫy. Nhiệm vụ ảo kết hợp thưởng giới thiệu khiến thiệt hại lan theo cả nhóm bạn.'}
+      ]},
+    { msgs:[
+        H(bankCard('+650.000đ','Hoan von + hoa hong NV don hang'),true),
+        T('Chúc mừng em lên cấp 🎉 Nhiệm vụ combo hôm nay: [[nạp 5.000.000đ, nhận về 6.500.000đ]]. [[Còn 2 suất cuối]]!')
+      ],
+      q:'Bạn vừa lời 150k. Giờ thì sao?',
+      opts:[
+        {t:'Nạp 5 triệu – đang lời mà, thiếu thì vay thêm bạn bè', say:'Em nạp 5 triệu nha chị.', res:[T('⚠️ Em [[thao tác sai cú pháp đơn hàng]]. [[Số dư 11.500.000đ bị đóng băng]]. Nạp thêm 3.000.000đ phí mở khoá để rút.'), SYS('😶 Nút “Rút tiền” không hoạt động…')], pts:0,
+         fb:'Đây là bẫy “khoá số dư”: số dư trên màn hình chỉ là con số ảo. Càng nạp để “mở khoá”, bạn càng mất nhiều. Vay bạn bè để nạp còn kéo thêm người khác vào thiệt hại.'},
+        {t:'Dừng ở đây – đã lời rồi, rút về và rời nhóm', say:'Em rút tiền và nghỉ ạ.', res:[T('Em chưa hoàn thành đủ 3 vòng nên [[không rút được]] nhé. Làm xong combo mới mở khoá.'), SYS('✅ Bạn rời nhóm, lưu bằng chứng và trình báo Công an')], pts:65,
+         fb:'Bạn dừng đúng lúc! 650k trả về là cố ý cho bạn “nếm” lợi nhuận để nạp khoản lớn hơn. Lưu ảnh chụp đoạn chat, số tài khoản và trình báo Công an – thông tin của bạn giúp truy vết đường dây.'},
+        {t:'Nạp tiếp, nếu bị khoá thì thuê “dịch vụ lấy lại tiền” trên Facebook', say:'[Chuyển 5.000.000đ]', res:[SYS('Số dư bị “đóng băng”…'), T('“Dịch vụ thu hồi tiền lừa đảo – Luật sư Hùng”: Phí hồ sơ 2.000.000đ, cam kết lấy lại 100% 💯')], pts:0,
+         fb:'“Dịch vụ hack lấy lại tiền”, “luật sư thu hồi” là lừa đảo lần 2, nhắm đúng vào người vừa bị lừa. Chỉ cơ quan Công an mới có thẩm quyền điều tra, thu hồi tài sản.'}
+      ]}
+  ],
+  flags:['Việc nhẹ lương cao, không cần kinh nghiệm, chỉ cần điện thoại','Trả thưởng nhỏ lúc đầu để tạo niềm tin','Phải nạp tiền mới được nhận nhiệm vụ','“Sai cú pháp”, “đóng băng số dư” để ép nạp thêm','Hối thúc: “còn 2 suất cuối”'],
+  rule:'Việc làm thật trả lương cho bạn – không bao giờ bắt bạn nạp tiền để được làm.',
+  fact:'Tháng 7/2025, Bộ đội Biên phòng Đồng Nai tiếp nhận 85 công dân bị dụ dỗ bằng lời mời “việc nhẹ lương cao” sang các trung tâm lừa đảo ở Campuchia.'
+},
+{
+  id:'trung-thuong', icon:'🎁', color:'#C11574', bg:'#FDE8F3', diff:'Dễ',
+  title:'Trúng thưởng iPhone', tag:'Tin nhắn trúng thưởng · link lạ',
+  persona:{name:'SieuSale', sub:'Tin nhắn thương hiệu', av:'🎁'}, plat:'SMS',
+  steps:[
+    { msgs:[
+        SYS('Tin nhắn SMS · 10:02'),
+        T('[SieuSale] Chuc mung thue bao cua ban [[da trung thuong iPhone 17 Pro Max]] trong CT Tri an khach hang. [[Nhan qua truoc 23h59 hom nay]] tai: sieusale-trian.vip/nhanqua'),
+        H(linkCard('sieusale-trian.vip','Nhận quà Tri ân – SieuSale','⏳ Còn 02:14:37 để xác nhận giải thưởng'),true)
+      ],
+      q:'Bạn chưa từng tham gia chương trình nào. Bạn sẽ?',
+      opts:[
+        {t:'Bấm link, điền địa chỉ và chuyển 299k “phí vận chuyển & bảo hiểm”', say:'[Đã điền thông tin · Chuyển 299.000đ]', res:[SYS('Trang báo: “Giao dịch lỗi! Nhập mã OTP vừa gửi để được hoàn tiền”')], pts:0,
+         fb:'Quà thật không bắt người trúng trả phí. 299k chỉ là bước 1 – bước tiếp theo là lừa lấy OTP để rút sạch tài khoản ngân hàng của bạn.'},
+        {t:'Chỉ bấm vào xem thử, không điền gì', say:'[Mở link sieusale-trian.vip]', next:1},
+        {t:'Không bấm. Tự mở app/fanpage chính thức để kiểm tra; báo cáo tin nhắn rác', say:'[Đã chặn người gửi · Báo cáo tin nhắn rác]', res:[SYS('✅ Đã chặn · Đã báo cáo')], pts:100,
+         fb:'Hoàn hảo! Tin nhắn mang tên thương hiệu vẫn có thể bị giả mạo. Hãy kiểm tra chéo qua kênh chính thức do bạn tự tìm – không bao giờ qua link trong tin nhắn.'},
+        {t:'Chuyển tiếp vào nhóm lớp hỏi “có ai trúng giống mình không?”', say:'[Đã chuyển tiếp tin nhắn vào nhóm lớp]', res:[SYS('3 bạn trong nhóm đã bấm vào link…')], pts:25,
+         fb:'Hỏi ý kiến là tốt, nhưng chuyển tiếp nguyên đường link khiến bạn bè bấm nhầm. Hãy chụp màn hình (che link) và kèm lời cảnh báo.'}
+      ]},
+    { msgs:[
+        H(`<div class="card page"><div class="bar">⚠️ sieusale-trian.vip/xacminh</div><div class="pad"><b style="font-size:14px">Xác minh chủ thuê bao để nhận quà</b><small style="color:var(--muted);display:block;margin-top:4px">Đăng nhập để xác nhận danh tính người nhận giải</small><span class="fakebtn">Tiếp tục với Facebook</span><div class="otp"><i></i><i></i><i></i><i></i><i></i><i></i></div><small style="color:var(--muted);display:block;margin-top:6px">Nhập mã OTP 6 số vừa gửi đến điện thoại</small></div></div>`,true)
+      ],
+      q:'Trang yêu cầu đăng nhập Facebook để “xác minh”. Bạn?',
+      opts:[
+        {t:'Đăng nhập Facebook và nhập mã OTP gửi về', say:'[Đã đăng nhập · Nhập OTP 482913]', res:[SYS('⚠️ Mật khẩu Facebook của bạn vừa bị thay đổi'), SYS('Bạn bè bắt đầu nhận tin: “cho mình mượn 3 triệu gấp”…')], pts:0,
+         fb:'Trang đăng nhập giả lấy cắp mật khẩu, còn mã OTP giúp kẻ gian vượt bảo mật 2 lớp. Tài khoản của bạn sẽ bị dùng để lừa chính bạn bè bạn (xem tình huống “Bạn thân mượn tiền gấp”).'},
+        {t:'Chỉ điền họ tên và số điện thoại rồi thoát', say:'[Điền họ tên, số điện thoại]', pts:20,
+         fb:'Họ tên + số điện thoại đủ để kẻ gian gọi lại với kịch bản cá nhân hoá (“Chào {name}, bên mình gọi về giải thưởng…”). Dữ liệu cá nhân cũng là tài sản.'},
+        {t:'Thoát ngay; đổi mật khẩu, bật xác thực 2 lớp, báo cáo trang lừa đảo', say:'[Đóng trang · Đổi mật khẩu · Bật 2FA]', res:[SYS('✅ Đã báo cáo trang lừa đảo')], pts:75,
+         fb:'Phản ứng chuẩn sau khi lỡ bấm! Chỉ mở trang thường chưa gây hại ngay, nhưng có thể dính trang theo dõi – không tải bất kỳ tệp nào, cập nhật trình duyệt và lần sau đừng bấm.'}
+      ]}
+  ],
+  flags:['Trúng thưởng chương trình bạn chưa từng tham gia','Tên miền lạ: có gạch ngang, đuôi .vip/.xyz/.top','Hối thúc thời hạn, đồng hồ đếm ngược','Bắt trả phí để nhận quà','Đòi đăng nhập mạng xã hội hoặc nhập OTP'],
+  rule:'Trúng thưởng mà phải trả phí hoặc nhập OTP = lừa đảo. OTP là chìa khoá két sắt – không đưa cho bất kỳ ai.',
+  fact:'Năm 2025 ghi nhận khoảng 11,8 nghìn tên miền giả mạo tại Việt Nam (Báo cáo VNPT Cyber Immunity).'
+},
+{
+  id:'hoc-bong', icon:'🎓', color:'#6941C6', bg:'#F0EAFF', diff:'Trung bình',
+  title:'Học bổng trao đổi “trong mơ”', tag:'Học bổng / du học giả',
+  persona:{name:'Global Youth Exchange VN', sub:'gye.scholarship.vn@gmail.com', av:'🎓'}, plat:'Email',
+  steps:[
+    { msgs:[
+        T('Chúc mừng {name}! Bạn là 1 trong 20 sinh viên được chọn [[nhận học bổng trao đổi 6 tháng tại Hàn Quốc – miễn 100% học phí, vé máy bay, ký túc xá]] 🇰🇷'),
+        H(docCard('THƯ MỜI THAM GIA CHƯƠNG TRÌNH',['Chương trình: Asia Youth Exchange 2027','Ứng viên: {NAME}','Hạn xác nhận: 48 giờ'],'GYE<br>2027'),true),
+        T('Để giữ suất, bạn vui lòng [[nộp phí xử lý hồ sơ & bảo lãnh visa 4.500.000đ]], [[chuyển khoản vào STK cá nhân: NGUYEN THI LAN – 0451 xxx 789]]. Quá hạn, suất sẽ chuyển cho ứng viên dự bị.')
+      ],
+      q:'Bạn chưa nộp đơn nào nhưng rất muốn đi du học. Bạn?',
+      opts:[
+        {t:'Chuyển ngay 4,5 triệu – cơ hội ngàn năm có một', say:'[Chuyển khoản 4.500.000đ]', res:[T('Đã nhận. Bước tiếp theo: [[phí chứng minh tài chính 15.000.000đ]] (hoàn lại khi nhập cảnh).')], pts:0,
+         fb:'Không nộp đơn mà vẫn “trúng tuyển” là dấu hiệu rõ nhất. Sau phí hồ sơ sẽ là phí visa, phí chứng minh tài chính, phí bảo hiểm… cho tới khi bạn hết tiền.'},
+        {t:'Gửi trước bản scan hộ chiếu + CCCD để “giữ suất”, tiền tính sau', say:'[Đã gửi scan hộ chiếu, CCCD]', res:[T('Đã nhận hồ sơ. Bạn chuyển phí trước 17h mai nhé.')], pts:20,
+         fb:'Bạn chưa mất tiền, nhưng hộ chiếu + CCCD có thể bị dùng để mở tài khoản, vay tiền hoặc làm giả hồ sơ. Không gửi giấy tờ tuỳ thân cho bên chưa xác minh.'},
+        {t:'Xin giảm phí còn 2 triệu vì là sinh viên', say:'Em là sinh viên, bên mình giảm phí được không ạ?', res:[T('Vì bạn là ứng viên xuất sắc, hội đồng đồng ý giảm còn 2.000.000đ nhé 🤝')], pts:0,
+         fb:'Mặc cả với kẻ lừa đảo luôn “thành công” – vì số tiền nào họ cũng nhận. Học bổng thật không có chuyện giảm phí giữ suất qua tin nhắn.'},
+        {t:'Hỏi Phòng Hợp tác quốc tế / Công tác sinh viên của trường và tra website chính thức; không chuyển tiền', say:'[Gửi email hỏi Phòng Công tác sinh viên]', res:[SYS('📩 Phòng CTSV: “Trường không có chương trình này. Cảm ơn bạn đã báo – chúng tôi sẽ cảnh báo toàn trường.”')], pts:100,
+         fb:'Tuyệt vời! Kênh xác minh tốt nhất là nhà trường. Bạn còn giúp cả trường được cảnh báo kịp thời.'}
+      ]}
+  ],
+  flags:['Trúng tuyển dù chưa từng nộp đơn','Email miễn phí (@gmail.com) thay vì tên miền của tổ chức','Hạn chót gấp, doạ chuyển suất cho người khác','Nhận tiền qua tài khoản cá nhân','Thu “phí giữ suất”, “phí bảo lãnh visa”'],
+  rule:'Học bổng thật cho bạn tiền – không thu tiền “giữ suất”. Luôn xác minh qua nhà trường.',
+  fact:'Nhiều sinh viên mất tiền vì thông báo “trúng tuyển học bổng”, “giao lưu sinh viên quốc tế” giả (Báo SGGP, 2025).'
+},
+{
+  id:'ban-than', icon:'🙋', color:'#0E7090', bg:'#E0F5FA', diff:'Khó',
+  title:'Bạn thân mượn tiền gấp', tag:'Hack tài khoản · deepfake',
+  persona:{name:'Minh Anh 🌸', sub:'Bạn cùng lớp · Đang hoạt động', av:'🙋'}, plat:'Messenger',
+  steps:[
+    { msgs:[
+        T('ê {name} rảnh ko'),
+        T('cho t mượn [[3 triệu gấp]] với, mẹ t nhập viện cấp cứu 😭 chuyển giúp t vào [[tk anh t: TRAN VAN TUAN – 9704 xxx 1182]] nha'),
+        T('[[đừng gọi nha t đang trong phòng cấp cứu ko nghe đc]], tối t trả liền'),
+        H(callCard('Cuộc gọi video · 0:04','Hình mờ, khẩu hình không khớp tiếng – rồi tự tắt'),true),
+        T('thấy chưa t ở viện nè, mạng yếu quá. nhanh giúp t với 🙏')
+      ],
+      q:'Bạn vừa “thấy mặt” Minh Anh qua video. Bạn?',
+      opts:[
+        {t:'Chuyển ngay – đã thấy mặt bạn qua video rồi', say:'[Chuyển khoản 3.000.000đ]', res:[T('cảm ơn m nhiều ❤️ m cho t mượn [[thêm 2 triệu]] nữa đc ko, viện phí tăng')], pts:0,
+         fb:'Cuộc gọi vài giây, hình mờ, khẩu hình không khớp là dấu hiệu deepfake. Kẻ gian dùng ảnh/video cũ (lấy từ tài khoản bị hack) để dựng hình bạn của bạn.'},
+        {t:'Chuyển trước 1 triệu cho bạn đỡ, còn lại tính sau', say:'[Chuyển khoản 1.000.000đ]', res:[T('ok m, cố thêm 2tr nữa nha t cần gấp lắm 😭')], pts:10,
+         fb:'Bất kỳ số tiền nào chuyển cho tài khoản lạ đều khó lấy lại. Lòng tốt của bạn đang bị lợi dụng – hãy xác minh trước khi giúp.'},
+        {t:'Nhắn hỏi lại: “m tên đầy đủ là gì, học lớp nào?”', say:'m tên đầy đủ là gì, học lớp nào?', res:[T('Nguyễn Minh Anh lớp DH23CNTT nè, hỏi gì kì vậy 😤 nhanh lên')], pts:35,
+         fb:'Kẻ chiếm tài khoản đọc được toàn bộ tin nhắn cũ và trang cá nhân, nên trả lời được kiểu câu hỏi này. Phải xác minh qua một kênh KHÁC.'},
+        {t:'Gọi điện thoại thường cho Minh Anh (số đã lưu) hoặc người nhà bạn ấy để xác minh', say:'[Gọi số điện thoại đã lưu của Minh Anh]', res:[SYS('📞 Minh Anh: “Hả? Tao đang ở nhà mà! Facebook tao bị hack rồi!!”'), SYS('✅ Bạn báo Minh Anh và cảnh báo cả lớp')], pts:100,
+         fb:'Chuẩn! Xác minh qua kênh khác (gọi số điện thoại đã lưu) phá được mọi kịch bản mượn tiền, kể cả deepfake. Bạn còn giúp Minh Anh lấy lại tài khoản sớm.'}
+      ]}
+  ],
+  flags:['Mượn tiền gấp, viện cớ cấp cứu, tai nạn','Tên chủ tài khoản khác tên bạn mình','Né xác minh: “đừng gọi”','Video call vài giây, hình mờ, khẩu hình không khớp (deepfake)','Văn phong khác thường ngày'],
+  rule:'Ai mượn tiền qua mạng – kể cả người thân – hãy gọi vào số điện thoại bạn đã lưu để xác minh.',
+  fact:'Chỉ khoảng 1/3 nạn nhân lừa đảo trực tuyến trình báo cơ quan chức năng (khảo sát NCA, 12/2025).'
+},
+{
+  id:'ve-concert', icon:'🎫', color:'#D92D20', bg:'#FEE9E7', diff:'Dễ',
+  title:'Pass vé concert giá hời', tag:'Mua bán online · đặt cọc',
+  persona:{name:'Thảo Vy (pass vé)', sub:'Thành viên nhóm “Pass vé concert”', av:'🎫'}, plat:'Facebook',
+  steps:[
+    { msgs:[
+        SYS('Nhóm “Pass vé Concert Mùa Hè Rực Rỡ” · 120K thành viên'),
+        T('Hi bạn, mình pass [[2 vé VIP giá 1,2tr/vé (giá gốc 3tr)]] do bận đột xuất 🥲'),
+        T('[[Nhiều bạn hỏi lắm]], [[bạn cọc trước 50% mình giữ vé]] nha, còn lại thanh toán khi nhận vé điện tử.'),
+        H(docCard('ẢNH CCCD (gửi kèm)',['Họ tên: LÊ THẢO VY','Ảnh chụp mờ, che một góc','“Mình uy tín, có CCCD đây”']),true),
+        T('Bạn sợ thì [[dùng trung gian “Admin Tuấn” mình quen]] nè, tích xanh uy tín lắm.')
+      ],
+      q:'Vé đang “cháy”, bạn rất muốn đi. Bạn?',
+      opts:[
+        {t:'Cọc 50% vì bạn ấy đã gửi CCCD', say:'[Chuyển cọc 1.200.000đ]', res:[SYS('🔇 Thảo Vy đã chặn bạn')], pts:0,
+         fb:'Ảnh CCCD có thể là của một nạn nhân khác bị lộ dữ liệu. CCCD gửi qua mạng không chứng minh được gì.'},
+        {t:'Dùng “trung gian” bạn ấy giới thiệu cho chắc', say:'Mình dùng trung gian nha.', res:[T('Admin Tuấn: Bạn chuyển 2.400.000đ vào TK trung gian, nhận vé xong mình giải ngân cho bên bán ✅')], pts:0,
+         fb:'“Trung gian” do chính người bán giới thiệu thường là đồng bọn (hoặc tài khoản giả mạo admin). Chỉ dùng trung gian bạn tự tìm và xác thực – tốt nhất là mua tại kênh chính thức.'},
+        {t:'Tra số tài khoản trên trang cảnh báo lừa đảo, thấy “sạch” nên cọc 200k thôi', say:'[Tra cứu STK: chưa có cảnh báo · Chuyển cọc 200.000đ]', res:[T('Mình nhận rồi nha, giờ bạn chuyển nốt để mình gửi vé liền 🥰')], pts:35,
+         fb:'Tra cứu là thói quen tốt! Nhưng tài khoản mới mở chưa bị ai tố cáo thì vẫn “sạch”. Khoản cọc nhỏ vẫn mất – và kẻ gian sẽ tìm cớ đòi thêm.'},
+        {t:'Chỉ mua qua kênh bán vé chính thức của BTC, hoặc gặp trực tiếp, kiểm tra vé hợp lệ rồi mới trả tiền', say:'Mình chỉ giao dịch trực tiếp và kiểm tra vé trước nhé.', res:[T('Thôi bạn khó quá, mình bán người khác.'), SYS('✅ Bạn không mất đồng nào')], pts:100,
+         fb:'Chuẩn! Giá rẻ bất thường + cọc trước + hối thúc là combo lừa đảo kinh điển mùa concert. Mua ở kênh chính thức, hoặc gặp trực tiếp và kiểm tra vé rồi mới trả tiền.'}
+      ]}
+  ],
+  flags:['Giá rẻ bất thường so với giá gốc','Đòi đặt cọc trước, tạo khan hiếm “nhiều bạn hỏi lắm”','Gửi ảnh CCCD để “chứng minh uy tín”','Tự giới thiệu “trung gian” quen biết','Không cho kiểm tra vé trước khi trả tiền'],
+  rule:'Không chuyển cọc cho người lạ trên mạng. Giá “rẻ bất thường” là bất thường.',
+  fact:'Theo Bộ Công an, thiệt hại do lừa đảo trực tuyến trong 11 tháng năm 2025 ước tính trên 6.000 tỷ đồng.'
+},
+{
+  id:'bat-coc', icon:'🚨', color:'#7A2E0E', bg:'#FDEBD8', diff:'Rất khó',
+  title:'“Bắt cóc online”', tag:'Cô lập nạn nhân · tống tiền gia đình',
+  persona:{name:'“Cán bộ điều tra”', sub:'Số lạ · +84 79x xxx 512', av:'📞'}, plat:'Cuộc gọi',
+  steps:[
+    { msgs:[
+        H(callCard('Cuộc gọi đến · 12:36','Xưng “Viện Kiểm sát” · kéo dài 18 phút','📞'),true),
+        T('Như anh đã nói, [[em bị nghi liên quan đường dây ma tuý xuyên quốc gia]]. Để chứng minh trong sạch, em phải [[thuê phòng khách sạn một mình, “cách ly điều tra” 3 ngày]].'),
+        T('[[Tắt định vị, không liên lạc gia đình, bạn bè]]. Chỉ nghe máy số này. Nếu em bỏ đi, lệnh bắt có hiệu lực ngay.'),
+        T('Lát nữa cán bộ sẽ làm việc với bố mẹ em. Em [[quay một video đang khóc, nói cần tiền gấp]] để “phục vụ nghiệp vụ”.')
+      ],
+      q:'Bạn đang ở ký túc xá, rất sợ. Bạn?',
+      opts:[
+        {t:'Làm theo hết vì sợ bị bắt thật', say:'[Thuê phòng · Tắt định vị · Gửi video]', res:[SYS('⚠️ Bố mẹ bạn nhận được video và cuộc gọi đòi 300 triệu “tiền chuộc”…')], pts:0,
+         fb:'Đây là kịch bản “bắt cóc online”: bạn tự cô lập mình, kẻ gian dùng video của bạn để tống tiền gia đình. Không cơ quan nào yêu cầu “cách ly điều tra” ở khách sạn.'},
+        {t:'Thuê phòng nhưng lén nhắn bạn thân biết vị trí', say:'[Nhắn bạn thân: “t ở KS X phòng 302, đừng nói ai”]', res:[SYS('Bạn thân gọi ngay cho bố mẹ bạn và công an…')], pts:25,
+         fb:'Nhờ bạn thân mà bạn được cứu – nhưng bạn đã tự đưa mình vào nơi bị cô lập. Ngay khi bị yêu cầu giữ bí mật, cắt liên lạc: đó là lúc phải nói với người thân.'},
+        {t:'Yêu cầu cán bộ gọi video, cho xem thẻ ngành rồi mới làm', say:'Anh gọi video cho em xem thẻ ngành đã ạ.', res:[H(callCard('Cuộc gọi video · 0:20','Phòng làm việc, quân phục, cờ, thẻ ngành giơ trước camera'),true)], pts:10,
+         fb:'Phòng làm việc, quân phục, thẻ ngành đều dàn dựng được. Một video “trông như thật” không phải là bằng chứng.'},
+        {t:'Cúp máy, ra chỗ đông người, gọi ngay cho bố mẹ và 113', say:'[Cúp máy · Gọi cho mẹ · Gọi 113]', res:[SYS('📞 Mẹ: “Con ơi, con an toàn là được rồi!”'), SYS('✅ Bạn đã trình báo Công an')], pts:100,
+         fb:'Chính xác! Cách phá “bắt cóc online” là phá sự cô lập: kết nối với người thân và gọi 113. Cơ quan chức năng không bao giờ yêu cầu bạn tự cách ly, tắt định vị hay quay video.'}
+      ]}
+  ],
+  flags:['Đe doạ liên quan ma tuý, rửa tiền để gây hoảng loạn','Yêu cầu ở một mình, tắt định vị, cắt liên lạc','Cấm báo người thân = cô lập nạn nhân','Yêu cầu quay video “phục vụ nghiệp vụ” (thực chất để tống tiền)','Gọi liên tục, kéo dài, không cho suy nghĩ'],
+  rule:'Ai bắt bạn giữ bí mật với gia đình – đó là kẻ lừa đảo. Phá cô lập: gọi bố mẹ và 113.',
+  fact:'Năm 2025, công an nhiều địa phương đã giải cứu sinh viên bị “bắt cóc online” – nạn nhân tự cô lập theo lệnh của kẻ gian.'
+},
+{
+  id:'link-la', icon:'🔗', color:'#175CD3', bg:'#E3EEFF', diff:'Trung bình',
+  title:'Tài khoản sắp bị khoá', tag:'Phishing · trang đăng nhập giả',
+  persona:{name:'Page Support Center ✔', sub:'Trang · 2 người theo dõi', av:'⚠️'}, plat:'Messenger',
+  steps:[
+    { msgs:[
+        T('⚠️ THÔNG BÁO: Trang cá nhân của bạn bị báo cáo [[vi phạm bản quyền]]. Tài khoản sẽ [[bị vô hiệu hoá vĩnh viễn sau 24 giờ]].'),
+        T('Nếu đây là nhầm lẫn, vui lòng gửi kháng nghị tại:'),
+        H(linkCard('appeal-center-fb.top','Trung tâm kháng nghị – Help Center','Xác minh danh tính để giữ tài khoản','🔒','blue'),true)
+      ],
+      q:'Trang có dấu tích, logo giống thật. Bạn?',
+      opts:[
+        {t:'Bấm link, nhập email, mật khẩu và mã xác thực 2 lớp', say:'[Đã nhập email · mật khẩu · mã 2FA]', res:[SYS('⚠️ Phiên đăng nhập mới từ thiết bị lạ · Mật khẩu đã bị đổi')], pts:0,
+         fb:'Trang kháng nghị giả thu thập cả mật khẩu và mã 2FA để chiếm tài khoản tức thì. Tài khoản bị chiếm thường bị dùng để lừa bạn bè hoặc chạy quảng cáo bằng thẻ của bạn.'},
+        {t:'Bấm link xem thử, thấy giống thật nên chỉ nhập email', say:'[Đã nhập email]', res:[SYS('Trang yêu cầu tiếp: “Nhập mật khẩu để xác minh”')], pts:25,
+         fb:'Bạn đã cho kẻ gian một nửa thông tin đăng nhập, và họ sẽ tiếp tục nhắm vào email này. Đổi mật khẩu, bật 2FA và không bấm những link như vậy nữa.'},
+        {t:'Nhắn lại hỏi: “Mình vi phạm bài nào vậy?”', say:'Mình vi phạm bài nào vậy ạ?', res:[T('Hệ thống tự động. Vui lòng kháng nghị trong 24h để tránh bị khoá.')], pts:40,
+         fb:'Bạn không mất gì, nhưng trả lời giúp kẻ gian biết tài khoản đang hoạt động và tiếp tục quấy rầy. Không cần đối thoại – hãy báo cáo và chặn.'},
+        {t:'Không bấm. Tự mở ứng dụng → Cài đặt → Chất lượng tài khoản để kiểm tra; báo cáo trang giả', say:'[Kiểm tra trong Cài đặt: không có vi phạm · Báo cáo trang]', res:[SYS('✅ Tài khoản bình thường · Đã báo cáo trang giả mạo')], pts:100,
+         fb:'Chuẩn! Thông báo vi phạm thật nằm trong mục cài đặt của ứng dụng – nền tảng không gửi link kháng nghị qua tin nhắn từ một trang lạ.'}
+      ]}
+  ],
+  flags:['Đe doạ khoá tài khoản trong thời gian rất ngắn','Tin nhắn đến từ một “Trang” lạ, ít người theo dõi','Tên miền mượn tên thương hiệu nhưng không phải tên miền chính chủ','Đòi mật khẩu và mã xác thực 2 lớp','Tích xanh, logo có thể làm giả bằng ảnh'],
+  rule:'Không đăng nhập qua link trong tin nhắn. Muốn kiểm tra – tự mở ứng dụng chính thức.',
+  fact:'Năm 2024, người dùng Việt Nam mất hơn 18.000 tỷ đồng vì lừa đảo trực tuyến (Hiệp hội An ninh mạng quốc gia).'
+},
+{
+  id: 'nhiem-vu-online', icon: '🎯', color: '#D92D20', bg: '#FEE4E2', diff: 'Khó',
+  title: 'Nhiệm vụ giật đơn online', tag: 'Làm nhiệm vụ · bẫy đơn combo',
+  persona: { name: 'Admin Minh Thư – CSKH Tiki/Shopee Mall', sub: 'Nhóm VIP Khởi Nghiệp 4.800 thành viên', av: '🎯' }, plat: 'Telegram',
+  steps: [
+    { msgs: [
+        SYS('Nhóm Telegram “CỘNG ĐỒNG ĐẦU TƯ THƯƠNG MẠI ĐIỆN TỬ VIP” · 4.800 thành viên'),
+        T('Chúc mừng thành viên Lê Tuấn vừa rút thành công [[12.500.000đ hoa hồng giật đơn]]! 💸'),
+        H(bankCard('+12.500.000đ', 'HOAN TIEN DON HANG VIP SHOPEE MALL', false), true),
+        T('Chào bạn {name}, bạn vừa được duyệt vào danh sách [[nhận gói nhiệm vụ độc quyền: nạp 1 triệu nhận ngay 1,3 triệu]] (hoa hồng 30%).'),
+        T('Chỉ cần vào web sàn liên kết, bấm nút “Giật đơn” tăng tương tác cho shop. [[Cam kết tiền về tài khoản trong 5 phút]]!')
+      ],
+      q: 'Trong nhóm chat, mọi người liên tục gửi ảnh chụp nhận tiền thành công. Bạn sẽ làm gì?',
+      opts: [
+        { t: 'Nạp 1 triệu làm thử – thấy mọi người trong nhóm rút tiền thật ầm ầm', say: '[Chuyển khoản 1.000.000đ vào tài khoản chỉ định]', res: [{f:'me',html:bankCard('−1.000.000đ','NAP TIEN NV GAT DON 881',true)}], next: 1 },
+        { t: 'Nhắn riêng hỏi một thành viên trong nhóm xem có rút tiền thật không', say: 'Bạn ơi, bạn làm cái này rút được tiền thật không vậy?', res: [T('Thành viên Minh Quân: “Thật chứ bạn, mình rút mấy chục triệu tuần này rồi, tranh thủ nạp gói lớn đi kẻo hết slot!”')], pts: 10,
+          fb: 'Các thành viên trong nhóm gửi ảnh khoe tiền hay nhắn tin khen ngợi đều là “chim mồi” (tài khoản ảo của cùng một ổ nhóm) nhằm tạo hiệu ứng đám đông thao túng tâm lý bạn.' },
+        { t: 'Từ chối tham gia, lập tức rời nhóm và báo cáo hành vi lừa đảo', say: 'Tôi không có nhu cầu tham gia.', res: [SYS('✅ Đã rời nhóm · Đã báo cáo nhóm Telegram giả mạo')], pts: 100,
+          fb: 'Tuyệt đối chính xác! Không có sàn TMĐT nào (Shopee, Lazada, Tiki) tuyển người “giật đơn ảo nạp tiền” cả. Bất kỳ công việc nào bắt nộp tiền để làm nhiệm vụ đều là bẫy lừa đảo.' },
+        { t: 'Xin làm các nhiệm vụ miễn phí trước, khi nào có lãi mới nạp tiền', say: 'Cho em làm nhiệm vụ không cần nạp tiền được không chị?', res: [T('Nhiệm vụ miễn phí hết suất rồi em. Em không nạp thì chị nhường cơ hội làm giàu cho người khác nhé!')], pts: 30,
+          fb: 'Mục đích tối hậu của chúng là buộc bạn nạp tiền. Chúng sẽ tạo cảm giác hối tiếc (“nhường cơ hội cho người khác”) để ép bạn ra quyết định vội vàng.' }
+      ]
+    },
+    { msgs: [
+        H(`<div class="card page"><div class="bar">⚠️ shopee-mall-order88.vip</div><div class="pad"><b style="font-size:14px">Đơn hàng nhiệm vụ #02: Bộ trang sức PNJ</b><small style="color:var(--muted);display:block;margin-top:4px">Giá trị đơn: 8.500.000đ · Hoa hồng: 2.125.000đ</small><div class="fakebtn" style="background:#EE4D2D">Đang xử lý đơn hàng...</div></div></div>`, true),
+        T('⚠️ CẢNH BÁO: Đơn này nằm trong [[chuỗi nhiệm vụ liên hoàn 3 đơn]]. Em đã hoàn thành đơn 1/3.'),
+        T('Em cần [[nạp thêm 7.500.000đ]] để hoàn thành trọn bộ combo. [[Nếu không nạp, số tiền 1 triệu ban đầu sẽ bị đóng băng vĩnh viễn]] do vi phạm hợp đồng!')
+      ],
+      q: 'Hệ thống báo bạn đang bị "treo" 1 triệu và ép nạp thêm 7,5 triệu để rút cả gốc lẫn lãi. Bạn?',
+      opts: [
+        { t: 'Vay mượn nạp thêm 7,5 triệu để lấy lại 1 triệu ban đầu và nhận luôn 2 triệu tiền lãi', say: '[Chuyển thêm 7.500.000đ]', res: [T('Hệ thống báo: “Em bị [[sai cú pháp chuyển khoản]]. Nạp thêm 15.000.000đ phí giải trình thuế để mở khoá số dư!”')], pts: 0,
+          fb: 'Bẫy “nhiệm vụ liên hoàn” kinh điển: Chúng sẽ liên tục viện cớ “lỗi cú pháp”, “đơn combo 3 bước”, “phí kích hoạt” để bòn rút tiền của bạn cho đến khi bạn khánh kiệt.' },
+        { t: 'Chấp nhận mất 1 triệu, dừng lại ngay lập tức; chụp bằng chứng và báo Công an', say: 'Tôi không nạp nữa. Tôi sẽ báo cơ quan chức năng.', res: [T('Em không nạp thì mất trắng nhé!'), SYS('✅ Bạn chặn đối tượng, bảo toàn được 7,5 triệu đồng và trình báo cơ quan chức năng')], pts: 85,
+          fb: 'Dũng cảm cắt lỗ là quyết định sáng suốt! Tiền trên màn hình website chỉ là số ảo do chúng tự gõ. Càng cố nạp để “cứu tiền cũ”, bạn càng lún sâu vào bẫy.' },
+        { t: 'Nài nỉ xin admin cho rút lại 1 triệu gốc thôi, không lấy tiền hoa hồng', say: 'Chị ơi cho em xin lại 1 triệu gốc thôi, em là sinh viên không có tiền...', res: [T('Quy định hệ thống không thay đổi được em nhé. 12h trưa nay không nạp là huỷ tài khoản!')], pts: 15,
+          fb: 'Kẻ lừa đảo không có sự thương hại. Càng thấy bạn yếu thế, chúng càng đe dọa để ép bạn đi vay nóng hoặc lừa người thân nạp tiền.' }
+      ]
+    }
+  ],
+  flags: [
+    'Nhóm chat Telegram đông người nhưng toàn chim mồi khoe bill chuyển tiền ảo',
+    'Nạp tiền để làm nhiệm vụ "giật đơn thương mại điện tử"',
+    'Cam kết hoa hồng phi lý (20% – 30% trong vài phút)',
+    'Gài bẫy "nhiệm vụ combo liên hoàn" bắt nạp thêm tiền mới cho rút',
+    'Dọa "đóng băng số dư", "sai cú pháp" để ép nạn nhân nạp tiếp'
+  ],
+  rule: 'Không bao giờ nạp tiền để làm nhiệm vụ giật đơn online. Mọi website giật đơn TMĐT có đuôi lạ (.vip, .top) đều là giả mạo.',
+  fact: 'Năm 2025, Công an tỉnh Đồng Nai liên tục cảnh báo hình thức lừa đảo "nhiệm vụ giật đơn ảo", nhiều nạn nhân trên địa bàn TP. Biên Hòa bị lừa từ vài chục triệu đến hàng tỷ đồng.'
+},
+{
+  id: 'lua-dao-tinh-cam', icon: '💌', color: '#C11574', bg: '#FDE8F3', diff: 'Rất khó',
+  title: 'Bẫy tình cảm & Thùng quà ngoại tệ', tag: 'Hẹn hò online · Phí hải quan',
+  persona: { name: 'David Alex (Kỹ sư dầu khí)', sub: 'Việt kiều Úc · Đang hẹn hò', av: '🚢' }, plat: 'Zalo',
+  steps: [
+    { msgs: [
+        T('Em yêu, anh vừa kết thúc chuyến công tác ngoài giàn khoan. Anh đã quyết định [[tháng sau sẽ về Đồng Nai mua nhà để sống cùng em]] 💍'),
+        T('Anh có gửi về tặng em một thùng quà đặc biệt: [[1 chiếc iPhone 16 Pro Max, dây chuyền kim cương và 50.000 USD tiền mặt]] để em lo thủ tục.'),
+        H(docCard('VẬN ĐƠN QUỐC TẾ (AIR WAYBILL)', ['Người gửi: David Alex (Melbourne, Úc)', 'Người nhận: {NAME} (Đồng Nai, Việt Nam)', 'Nội dung: Quà tặng cá nhân & Ngoại tệ', 'Trọng lượng: 12.5 kg'], 'GLOBAL<br>EXPRESS'), true),
+        T('Hàng đang bay về sân bay. Em chú ý điện thoại để nhận quà giúp anh nhé, đây là toàn bộ gia tài anh tin tưởng gửi gắm em ❤️')
+      ],
+      q: 'Một người bạn ngoại quốc mới quen qua mạng 2 tuần gửi tặng bạn món quà trị giá hàng tỷ đồng. Bạn?',
+      opts: [
+        { t: 'Hạnh phúc nhận lời và háo hức chờ ngày bưu kiện về', say: 'Cảm ơn anh nhiều, em sẽ chú ý điện thoại để nhận quà giúp anh ạ ❤️', res: [T('Anh yêu em. Hãy giữ bí mật thùng quà này nhé!')], next: 1 },
+        { t: 'Nghi ngờ, hỏi: “Sao anh lại gửi cả tiền mặt qua đường bưu điện?”', say: 'Sao anh lại gửi tiền mặt qua bưu điện? Luật Việt Nam đâu có cho phép?', res: [T('Anh bọc kỹ trong thùng quần áo rồi em, không sao đâu. Em cứ yên tâm nhận nhé!')], next: 1 },
+        { t: 'Từ chối thẳng thừng, nói rằng mới quen không thể nhận món quà lớn như vậy', say: 'Em không thể nhận món quà lớn như thế này từ người mới quen trên mạng. Em xin phép từ chối.', res: [SYS('✅ Bạn từ chối nhận hàng · Kẻ gian dần mất kiên nhẫn và lộ bản chất')], pts: 100,
+          fb: 'Xuất sắc! Đây là chiêu bài kinh điển của các đường dây lừa đảo tình cảm xuyên quốc gia (Romance Scam). Không có ai quen qua mạng 2 tuần lại gửi hàng chục ngàn USD cho người lạ.' },
+        { t: 'Xin định vị và thông tin chuyến bay để ra tận sân bay đón', say: 'Anh gửi em mã chuyến bay em ra sân bay Tân Sơn Nhất đón anh luôn nhé.', res: [T('Hàng gửi chuyển phát nhanh em ơi, không ra đón được đâu. Cứ chờ người ta gọi nhé.')], pts: 45,
+          fb: 'Bạn có ý thức kiểm chứng, nhưng kẻ gian luôn có kịch bản để tránh việc gặp trực tiếp. Toàn bộ hình ảnh, vận đơn đều được Photoshop tinh vi.' }
+      ]
+    },
+    { msgs: [
+        H(callCard('Cuộc gọi đến · 0938 xxx 114', '“Nhân viên Hải quan / Chuyển phát nhanh Sân bay”', '📦'), true),
+        T('Alo, có phải chị {name} không? Chúng tôi phát hiện bưu kiện từ Úc gửi cho chị có [[chứa lượng lớn ngoại tệ 50.000 USD không khai báo]].'),
+        T('Hành vi này có dấu hiệu [[vận chuyển trái phép tiền tệ qua biên giới / rửa tiền]]. Chị phải [[nộp phạt và đóng phí thông quan 15.000.000đ]] vào tài khoản hải quan.'),
+        T('Nếu không chuyển tiền trước 16h hôm nay, bưu kiện sẽ bị tịch thu và [[chuyển hồ sơ sang cơ quan Công an điều tra hình sự]]!')
+      ],
+      q: 'Đối tượng dọa bạn có nguy cơ đi tù vì thùng quà chứa ngoại tệ và bắt nộp 15 triệu để thông quan. Bạn?',
+      opts: [
+        { t: 'Hoảng sợ chuyển ngay 15 triệu vào số tài khoản cá nhân được cung cấp để thoát tội', say: '[Chuyển khoản 15.000.000đ]', res: [T('Bên hải quan báo: “Tiền phạt rửa tiền thêm 30.000.000đ nữa mới được thả hàng...”')], pts: 0,
+          fb: 'Sập bẫy hoàn toàn! Cơ quan Hải quan không bao giờ làm việc qua điện thoại hù dọa và KHÔNG BAO GIỜ yêu cầu đóng phí thông quan vào tài khoản cá nhân.' },
+        { t: 'Nhắn tin hỏi “người yêu” David Alex để nhờ anh ấy chuyển khoản nộp phạt hộ', say: 'Anh ơi bên hải quan đòi 15 triệu tiền phạt, anh chuyển khoản giúp em được không?', res: [T('David: “Tài khoản anh ngoài giàn khoan bị khoá rồi em ứng trước đi, nhận được thùng quà em lấy 50k USD bù lại!”')], pts: 15,
+          fb: 'Cả “người yêu ngoại quốc” và “nhân viên hải quan” thực chất là một nhóm kịch bản ăn ý. Kẻ giả người yêu sẽ luôn tìm lý do để ép bạn tự bỏ tiền túi ra nộp.' },
+        { t: 'Không nộp đồng nào; thông báo cho người thân và đến cơ quan Công an gần nhất trình báo', say: 'Tôi không gửi bưu kiện này và từ chối nhận. Tôi sẽ làm việc trực tiếp với cơ quan công an.', res: [SYS('🔇 Đối tượng lập tức dập máy · Tài khoản Zalo David Alex biến mất'), SYS('✅ Bạn an toàn 100%, bảo vệ được 15 triệu đồng')], pts: 100,
+          fb: 'Xử lý chuẩn xác! Bưu kiện quốc tế thật nếu có vi phạm sẽ có biên bản niêm phong lập trực tiếp tại cửa khẩu. Tuyệt đối không chuyển tiền theo các cuộc gọi đe dọa.' }
+      ]
+    }
+  ],
+  flags: [
+    'Người nước ngoài mới quen qua mạng đã xưng hô "vợ chồng", hứa hẹn về Việt Nam kết hôn',
+    'Tự ý gửi thùng quà có chứa vàng bạc, trang sức và ngoại tệ tiền mặt số lượng lớn',
+    'Vận đơn quốc tế giả mạo, hình ảnh thùng quà được dàn dựng',
+    'Nhân viên "hải quan sân bay" gọi điện đe dọa dính líu rửa tiền, ép đóng tiền phạt',
+    'Yêu cầu chuyển tiền phí/phạt vào SỐ TÀI KHOẢN CÁ NHÂN thay vì Kho bạc Nhà nước'
+  ],
+  rule: 'Bưu kiện quốc tế KHÔNG BAO GIỜ được gửi kèm tiền mặt. Cơ quan Nhà nước KHÔNG BAO GIỜ thu phí hải quan hay tiền phạt qua số tài khoản cá nhân.',
+  fact: 'Tháng 10/2025, Công an tỉnh Đồng Nai triệt phá đường dây lừa đảo tình cảm qua mạng do nhóm người nước ngoài câu kết với người trong nước, chiếm đoạt hơn 20 tỷ đồng của nhiều phụ nữ.'
+}
+
+];
+
+/* ============================================================ STATE */
+const MAX = SCENARIOS.length*100;
+const KEY='cl101_v1';
+let S = {name:'',school:'',scores:{}};
+let cur=null, fast=false, busy=false, runId=0;
+try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s&&s.name) S=s; }catch(e){}
+const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} };
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fill=s=>s.replaceAll('{name}',esc(S.name)).replaceAll('{NAME}',esc(S.name.toUpperCase()));
+const fmt=s=>fill(esc(s).replace(/\[\[(.+?)\]\]/g,'<span class="flag">$1</span>')).replace(/\n/g,'<br>');
+const sleep=ms=>new Promise(r=>setTimeout(r,fast?ms*.15:ms));
+const total=()=>Object.values(S.scores).reduce((a,b)=>a+b,0);
+const doneCount=()=>Object.keys(S.scores).length;
+const shieldSVG=`<svg class="sh" viewBox="0 0 120 120"><path d="M60 6 L104 22 V58 C104 84 86 104 60 114 C34 104 16 84 16 58 V22 Z" fill="#1FCB7C"/><path d="M40 60 L54 74 L82 44" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s => {
+    const isActive = (s.id === id);
+    s.classList.toggle('active', isActive);
+    s.style.display = isActive ? 'flex' : 'none';
+  });
+}
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),2600); }
+function verdictOf(p){ return p>=80?['good','✅','An toàn!']:p>=40?['mid','⚠️','Chưa tối ưu']:['bad','❌','Sập bẫy!']; }
+
+
+/* ============================================================ NAVIGATION & SYSTEM LOGIC */
+let seniorMode = false;
+let curCheckTab = 'sdt';
+
+
+function toggleSenior(){
+  seniorMode = !seniorMode;
+  $('phone').classList.toggle('senior', seniorMode);
+  ['btnSeniorHome', 'btnSeniorCheck', 'btnSeniorNews'].forEach(id => {
+    const b = $(id); if(b) b.classList.toggle('active', seniorMode);
+  });
+  toast(seniorMode ? '👓 Đã bật Chế độ chữ to toàn diện cho người cao tuổi' : 'Đã về chế độ chữ chuẩn');
+}
+
+
+
+/* ============================================================
+   HỆ THỐNG PHÁT ÂM GIỌNG ĐỌC TIẾNG VIỆT (TTS CHUẨN ĐỒNG NAI)
+   Tuân thủ nghiêm ngặt theo yêu cầu:
+   - getViVoice() tìm & ưu tiên: Google, Natural, HoaiMy, NamMinh, vi-VN
+   - onvoiceschanged cập nhật tự động
+   - u.rate = 0.92 (chậm, rõ cho người cao tuổi)
+   - u.pitch = 1.0
+   - Thông báo: "Thiết bị hoặc trình duyệt không hỗ trợ phát âm"
+   ============================================================ */
+
+/* ============================================================
+   ROBUST TTS (GIỌNG ĐỌC TIẾNG VIỆT HOÀN HẢO) & MIC RECOGNITION
+   ============================================================ */
+let speechRecInstance = null;
+let isRecActive = false;
+
+// Initialize Web Speech Recognition
+function initSpeechRec(){
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRec) return;
+  try {
+    speechRecInstance = new SpeechRec();
+    speechRecInstance.lang = 'vi-VN';
+    speechRecInstance.continuous = false;
+    speechRecInstance.interimResults = false;
+
+    speechRecInstance.onstart = () => {
+      isRecActive = true;
+      const btn = $('btnMic');
+      if(btn){
+        btn.style.background = '#DC2626';
+        btn.style.borderColor = '#DC2626';
+        btn.style.color = '#FFFFFF';
+        btn.innerHTML = '🔴 Đang nghe bác nói... (Bấm để xong)';
+      }
+      toast('🎙️ Đang lắng nghe... Bác hãy nói nội dung tin nhắn / cuộc gọi!');
+    };
+
+    speechRecInstance.onresult = (e) => {
+      isRecActive = false;
+      const transcript = e.results[0][0].transcript;
+      $('aiMsgInput').value = transcript;
+      toast('✅ Đã nhận diện giọng nói: "' + transcript + '"');
+      resetMicUI();
+      runAiMsgAnalysis();
+    };
+
+    speechRecInstance.onerror = (e) => {
+      isRecActive = false;
+      resetMicUI();
+      toast('⚠️ Thiết bị chưa cấp mic. Tự động nạp mẫu giọng nói!');
+      $('aiMsgInput').value = 'Có người vừa gọi xưng là Công an Đồng Nai bảo tôi liên quan đường dây rửa tiền ma túy, yêu cầu chuyển 20 triệu vào tài khoản tạm giữ gấp.';
+      runAiMsgAnalysis();
+    };
+
+    speechRecInstance.onend = () => {
+      isRecActive = false;
+      resetMicUI();
+    };
+  } catch(err) {
+    console.log('SpeechRec init notice:', err);
+  }
+}
+
+function resetMicUI(){
+  const btn = $('btnMic');
+  if(!btn) return;
+  btn.style.background = '#FEF2F2';
+  btn.style.borderColor = '#FCA5A5';
+  btn.style.color = '#B91C1C';
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg><span>Nhấn để nói</span>`;
+}
+
+function handleMicClick(){
+  if(!speechRecInstance){
+    initSpeechRec();
+  }
+  if(speechRecInstance){
+    if(!isRecActive){
+      try {
+        speechRecInstance.start();
+      } catch(e){
+        // If already started or restricted on file://
+        $('aiMsgInput').value = 'Có người xưng là Thượng úy Đức bên Công an Đồng Nai gọi dọa tôi dính án ma túy bắt chuyển 15 triệu vào tài khoản tạm giữ.';
+        toast('🎙️ Mô phỏng ghi âm giọng nói thành công!');
+        runAiMsgAnalysis();
+      }
+    } else {
+      speechRecInstance.stop();
+    }
+  } else {
+    // Browser without Web Speech API
+    $('aiMsgInput').value = 'Tôi vừa nhận được cuộc gọi xưng là công an dọa dính án ma túy, yêu cầu chuyển tiền vào tài khoản tạm giữ gấp.';
+    toast('🎙️ Đã nhận diện giọng nói mô phỏng!');
+    runAiMsgAnalysis();
+  }
+}
+
+// Robust TTS with Resume and Sound Chime
+function speakVoice(text){
+  if(!('speechSynthesis' in window)){
+    toast('Thiết bị hoặc trình duyệt không hỗ trợ phát âm');
+    return;
+  }
+
+  try {
+    window.speechSynthesis.cancel();
+    if(window.speechSynthesis.paused){
+      window.speechSynthesis.resume();
+    }
+  } catch(e){}
+
+  const u = new SpeechSynthesisUtterance(text);
+  const voice = viVoice || getViVoice();
+  if(voice) u.voice = voice;
+  u.lang = 'vi-VN';
+  u.rate = 0.92;
+  u.pitch = 1.0;
+
+  // Beep cue to confirm audio start
+  playAudioCue();
+
+  u.onstart = () => {
+    toast('🔊 Đang đọc: ' + text.slice(0, 40) + '...');
+  };
+  u.onerror = (err) => {
+    console.log('TTS notice:', err);
+    // If blocked or failed, inform clearly
+    toast('🔊 [Giọng đọc]: ' + text.slice(0, 45) + '...');
+  };
+
+  window.speechSynthesis.speak(u);
+}
+
+// Gentle Web Audio Chime (Guarantees audible sound on any OS)
+function playAudioCue(){
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if(!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.23);
+  } catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initSpeechRec();
+});
+
+let viVoice = null;
+function getViVoice(){
+  if(!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(v => v.lang && v.lang.includes('vi') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('HoaiMy') || v.name.includes('NamMinh')))
+      || voices.find(v => v.lang === 'vi-VN' || v.lang === 'vi_VN')
+      || voices.find(v => v.lang && v.lang.startsWith('vi'))
+      || null;
+}
+
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = () => {
+    viVoice = getViVoice();
+  };
+}
+
+
+
+function speakText(txt){
+  speakVoice(txt);
+}
+
+function shareNewsContent(title){
+  navigator.clipboard.writeText(`CẢNH BÁO AN NINH MẠNG ĐỒNG NAI: ${title}. Bà con và người thân chú ý đề phòng bẫy lừa đảo, tuyệt đối không chuyển tiền!`);
+  toast('✅ Đã sao chép nội dung cảnh báo để gửi cho người thân qua Zalo!');
+}
+
+/* ============================================================
+   CÔNG CỤ TRA CỨU TÁCH RIÊNG DÀNH CHO NGƯỜI CAO TUỔI
+   ============================================================ */
+function applySampleNumber(){
+  $('inQuickCheck').value = '0899214214';
+  doQuickCheck();
+}
+
+function doQuickCheck(){
+  const query = $('inQuickCheck').value.trim();
+  if(!query){ toast('Vui lòng nhập SĐT, số tài khoản hoặc link'); return; }
+
+  const resEl = $('quickCheckResult');
+  const iconText = $('qcIconText');
+  const descEl = $('qcDesc');
+  const fwdBtn = $('btnForwardQc');
+  resEl.style.display = 'block';
+
+  const clean = query.toLowerCase().replace(/[^a-z0-9.]/g,'');
+  const match = KNOWN_SCAMS_LIST.find(x => clean.includes(x.val.toLowerCase().replace(/[^a-z0-9.]/g,'')));
+
+  if(match){
+    resEl.className = 'res-badge red';
+    iconText.innerHTML = `🚨 ${match.title}`;
+    descEl.textContent = match.desc;
+    fwdBtn.style.display = 'inline-block';
+    if(seniorMode) speakVoice(`Cảnh báo nguy hiểm! Số hoặc đường dẫn ${query} nằm trong danh sách đen lừa đảo.`);
+  } else {
+    if(clean.endsWith('.vip') || clean.endsWith('.top') || clean.endsWith('.apk') || clean.endsWith('.app') || clean.includes('nhanqua') || clean.includes('trian')){
+      resEl.className = 'res-badge red';
+      iconText.innerHTML = '🚨 CẢNH BÁO NGUY CƠ CAO (TÊN MIỀN BẤT THƯỜNG)';
+      descEl.textContent = 'Đường link sử dụng đuôi tên miền rủi ro cao hoặc từ khóa tri ân không thuộc tổ chức uy tín. Tuyệt đối không đăng nhập hay cài tệp tải về!';
+      fwdBtn.style.display = 'inline-block';
+      if(seniorMode) speakVoice('Cảnh báo nguy cơ cao! Đường dẫn bất thường, tuyệt đối không bấm vào.');
+    } else if(query.length >= 9 && /^0\d+$/.test(query)){
+      resEl.className = 'res-badge amber';
+      iconText.innerHTML = '⚠️ CHƯA CÓ TRONG DANH SÁCH ĐEN – HÃY CẢNH GIÁC';
+      descEl.textContent = `Số điện thoại ${query} chưa có trong hồ sơ đen, nhưng nếu người gọi xưng công an hoặc đòi chuyển tiền gấp, tuyệt đối KHÔNG làm theo!`;
+      fwdBtn.style.display = 'none';
+      if(seniorMode) speakVoice('Cảnh báo: Hãy cảnh giác và hỏi ý kiến người thân trước.');
+    } else {
+      resEl.className = 'res-badge green';
+      iconText.innerHTML = '✅ THÔNG TIN CHƯA CÓ DẤU HIỆU ĐỘC HẠI';
+      descEl.textContent = 'Chưa phát hiện báo cáo xấu liên quan đến thông tin này. Tuy nhiên cần luôn cẩn trọng trước các giao dịch tài chính.';
+      fwdBtn.style.display = 'none';
+    }
+  }
+}
+
+function speakQcResult(){
+  const t = $('qcIconText').textContent + '. ' + $('qcDesc').textContent;
+  speakVoice(t);
+}
+
+function forwardQcToReport(){
+  const target = $('inQuickCheck').value.trim();
+  transferToReport(target, 'Phát hiện nghi vấn qua công cụ Tra cứu');
+}
+
+/* ============================================================
+   AI MESSAGE SCANNER LOGIC
+   ============================================================ */
+function applySampleAi(type){
+  if(type === 'congan'){
+    $('aiMsgInput').value = 'Chào anh, tôi là Thượng úy Trần Minh Đức - Công an điều tra. Số CCCD của anh liên quan đường dây rửa tiền, yêu cầu chuyển 15 triệu vào tài khoản tạm giữ 0899214 để kiểm tra.';
+  } else if(type === 'vieclam'){
+    $('aiMsgInput').value = 'Tuyển cộng tác viên làm thêm tại nhà: xem video TikTok, hoa hồng 300k/ngày, nạp tiền 500k làm nhiệm vụ đơn hàng hoàn tiền ngay.';
+  } else if(type === 'shopee'){
+    $('aiMsgInput').value = 'Chúc mừng bạn được chọn giật đơn Shopee VIP! Làm nhiệm vụ combo 3 đơn liên hoàn nạp 10 triệu để nhận hoa hồng 15 triệu trong ngày.';
+  } else if(type === 'ngoai_te'){
+    $('aiMsgInput').value = 'Anh Robert Chen vừa gửi thùng quà gồm kim cương và 50.000 USD tiền mặt về Đồng Nai. Hải quan yêu cầu nộp 15 triệu phí thông quan vào STK cá nhân.';
+  }
+  runAiMsgAnalysis();
+}
+
+
+
+function runAiMsgAnalysis(){
+  const text = $('aiMsgInput').value.trim();
+  if(!text){ toast('Vui lòng dán nội dung hoặc bấm Micro để nói'); return; }
+
+  const box = $('aiResultBox');
+  const badge = $('aiRiskBadge');
+  const sumEl = $('aiSummary');
+  const flagsEl = $('aiFlags');
+  const advEl = $('aiAdvice');
+  box.style.display = 'block';
+
+  const lower = text.toLowerCase();
+  let risk = 'LOW';
+  let flags = [];
+  let advice = '';
+
+  if(lower.includes('công an') || lower.includes('viện kiểm sát') || lower.includes('điều tra') || lower.includes('rửa tiền') || lower.includes('tạm giam') || lower.includes('tạm giữ')){
+    risk = 'CRITICAL';
+    flags.push('Mạo danh lực lượng Công an / Cơ quan chức năng qua mạng');
+    flags.push('Đe dọa dính líu án hình sự nhằm làm nạn nhân hoảng loạn');
+    flags.push('Yêu cầu chuyển tiền vào “tài khoản tạm giữ” – Dấu hiệu lừa đảo 100%');
+    advice = 'CẢNH BÁO KHẨN CẤP: Công an thật KHÔNG làm việc qua mạng và KHÔNG BAO GIỜ yêu cầu người dân chuyển tiền. Hãy cúp máy ngay và kể cho người thân!';
+  } else if(lower.includes('shopee') || lower.includes('giật đơn') || lower.includes('combo') || lower.includes('hoa hồng') || lower.includes('nhiệm vụ') || lower.includes('nạp tiền') || lower.includes('việc nhẹ')){
+    risk = 'HIGH';
+    flags.push('Chiêu bài giật đơn ảo hoặc việc nhẹ lương cao hưởng hoa hồng');
+    flags.push('Bắt nạp tiền trước để làm nhiệm vụ hoặc nâng cấp gói combo');
+    flags.push('Mô hình bẫy đóng băng số dư để chiếm đoạt tiền nạp');
+    advice = 'CẢNH BÁO: Sàn TMĐT không bao giờ tuyển CTV giật đơn chuyển tiền cá nhân. Tuyệt đối không nạp thêm bất kỳ khoản tiền nào!';
+  } else if(lower.includes('robert chen') || lower.includes('50.000 usd') || lower.includes('thùng quà') || lower.includes('hải quan') || lower.includes('ngoại tệ') || lower.includes('phi hải quan')){
+    risk = 'HIGH';
+    flags.push('Bẫy lừa đảo tình cảm xuyên quốc gia (Romance Scam)');
+    flags.push('Dụ dỗ nhận thùng quà ngoại tệ/kim cương giá trị lớn');
+    flags.push('Mạo danh nhân viên hải quan sân bay yêu cầu nộp phí vào STK cá nhân');
+    advice = 'CẢNH BÁO: Hải quan thật không thu phí qua tài khoản cá nhân. Không có thùng quà nào cả, đây là bẫy lừa 100%!';
+  } else {
+    risk = 'MEDIUM';
+    flags.push('Tin nhắn chứa nội dung yêu cầu tương tác tài chính hoặc truy cập liên kết lạ');
+    flags.push('Cần kiểm tra kỹ danh tính người gửi trước khi cung cấp OTP hay chuyển khoản');
+    advice = 'LỜI KHUYÊN: Hãy hỏi ý kiến người thân hoặc gọi 113 trước khi thực hiện giao dịch.';
+  }
+
+  if(risk === 'CRITICAL'){
+    badge.style.background = '#FEE2E2'; badge.style.color = '#B91C1C'; badge.textContent = '🔴 NGUY CƠ CỰC KỲ CAO (LỪA ĐẢO)';
+    sumEl.style.color = '#B91C1C'; sumEl.textContent = 'DẤU HIỆU MẠO DANH CƠ QUAN PHÁP LUẬT TỐNG TIỀN!';
+  } else if(risk === 'HIGH'){
+    badge.style.background = '#FFEDD5'; badge.style.color = '#C2410C'; badge.textContent = '🟠 NGUY HIỂM CAO (BẪY TÀI CHÍNH)';
+    sumEl.style.color = '#C2410C'; sumEl.textContent = 'DẤU HIỆU BẪY CHIẾM ĐOẠT TÀI SẢN ĐÃ ĐƯỢC CẢNH BÁO!';
+  } else {
+    badge.style.background = '#FEF3C7'; badge.style.color = '#92400E'; badge.textContent = '🟡 CẢNH BÁO CẦN XÁC MINH';
+    sumEl.style.color = '#92400E'; sumEl.textContent = 'CẦN THẬN TRỌNG VỚI NỘI DUNG NÀY';
+  }
+
+  flagsEl.innerHTML = flags.map(f => `<li>⚠️ ${f}</li>`).join('');
+  advEl.innerHTML = `🛡️ <b>Khuyến nghị từ Công an:</b> ${advice}`;
+
+  if(seniorMode){
+    speakVoice(sumEl.textContent + '. ' + advice);
+  }
+}
+
+function speakAiAnalysis(){
+  const text = $('aiSummary').textContent + '. ' + $('aiAdvice').textContent;
+  speakVoice(text);
+}
+
+function forwardAiToReport(){
+  const text = $('aiMsgInput').value.trim();
+  transferToReport('Nội dung tin nhắn lừa đảo', text);
+}
+
+/* ============================================================
+   CẬP NHẬT NAVTO ĐỂ ĐIỀU HƯỚNG 5 TABS (BAO GỒM NEWS)
+   ============================================================ */
+function navTo(screenId){
+  show(screenId);
+  const nav = $('bottomNav');
+  if(nav){
+    nav.classList.add('show');
+    ['check','map','news','report','stats'].forEach(id=>{
+      const el = $('nav' + id.charAt(0).toUpperCase() + id.slice(1));
+      if(el) el.classList.toggle('active', id === screenId);
+    });
+  }
+}
+
+function _old_navTo(screenId){
+  show(screenId);
+  const nav = $('bottomNav');
+  if(nav){
+    nav.classList.add('show');
+    ['check','map','report','stats'].forEach(id=>{
+      const el = $('nav' + id.charAt(0).toUpperCase() + id.slice(1));
+      if(el) el.classList.toggle('active', id === screenId);
+    });
+  }
+}
+
+function switchCheckTab(tab){
+  curCheckTab = tab;
+  document.querySelectorAll('.c-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab === tab));
+  const inp = $('checkInput');
+  if(tab === 'sdt'){
+    inp.placeholder = 'Nhập số điện thoại hoặc STK ngân hàng cần tra cứu...';
+  } else if(tab === 'link'){
+    inp.placeholder = 'Nhập hoặc dán đường dẫn link web (VD: sieusale-trian.vip)...';
+  } else {
+    inp.placeholder = 'Dán đoạn tin nhắn SMS, Zalo nghi vấn để AI phân tích...';
+  }
+}
+
+function handlePasteInput(){
+  navigator.clipboard.readText().then(text=>{
+    if(text){ $('checkInput').value = text; toast('Đã dán nội dung từ bộ nhớ tạm'); }
+  }).catch(()=>{
+    toast('Hãy bấm Ctrl+V để dán trực tiếp vào ô');
+  });
+}
+
+function handleVoiceInput(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    toast('Thiết bị chưa hỗ trợ nhận diện giọng nói trực tiếp. Hãy nhập bàn phím.');
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'vi-VN';
+  toast('Đang lắng nghe... Bác hãy đọc số điện thoại hoặc nội dung');
+  recognition.onresult = function(e){
+    const text = e.results[0][0].transcript;
+    $('checkInput').value = text;
+    toast('Đã ghi nhận: ' + text);
+    runCheck();
+  };
+  recognition.onerror = function(){ toast('Không nghe rõ, bác vui lòng thử lại'); };
+  recognition.start();
+}
+
+function runCheck(){
+  const val = $('checkInput').value.trim();
+  if(!val){ $('checkInput').focus(); toast('Vui lòng nhập nội dung cần kiểm tra'); return; }
+  const resBox = $('checkResult');
+  resBox.style.display = 'block';
+
+  const vLow = val.toLowerCase();
+  const isDanger = /0899|0912|079|088|0451|9704|\.vip|\.apk|\.top|\.xyz|công an|rửa tiền|nhiệm vụ|hoa hồng|việc nhẹ|trúng thưởng|tri an|trian|cấp cứu|viện phí|tạm giữ|bắt cóc|50\.000 usd|nhận quà/i.test(vLow);
+  const isSafe = /113|115|dongnai\.gov\.vn|chinhphu\.vn|vneid\.gov\.vn|vietcombank|agribank/i.test(vLow);
+
+  if(isDanger){
+    resBox.innerHTML = `
+      <div class="check-res danger">
+        <div class="check-res-head"><span class="badge">🔴</span><b>CẢNH BÁO NGUY HIỂM CAO!</b></div>
+        <p>Thông tin <strong>"${esc(val)}"</strong> có dấu hiệu lừa đảo trực tuyến rõ rệt.</p>
+        <div class="why">⚠️ <strong>Lý do:</strong> Đã có hơn 45 phản ánh tại Đồng Nai về hành vi mạo danh cơ quan chức năng hoặc tuyển cộng tác viên lừa đảo liên quan đến thông tin này. Tuyệt đối KHÔNG chuyển tiền, KHÔNG bấm link!</div>
+      </div>`;
+    if(seniorMode) speakVoice('Cảnh báo nguy hiểm! Tuyệt đối không chuyển tiền và không làm theo hướng dẫn.');
+  } else if(isSafe){
+    resBox.innerHTML = `
+      <div class="check-res safe">
+        <div class="check-res-head"><span class="badge">🟢</span><b>AN TOÀN - CHÍNH THỐNG</b></div>
+        <p>Thông tin <strong>"${esc(val)}"</strong> là cổng thông tin hoặc đường dây nóng chính thống của cơ quan nhà nước.</p>
+        <div class="why">✅ Bạn có thể yên tâm sử dụng theo các kênh liên lạc chính thức.</div>
+      </div>`;
+    if(seniorMode) speakVoice('An toàn. Đây là cổng thông tin chính thống.');
+  } else {
+    resBox.innerHTML = `
+      <div class="check-res warning">
+        <div class="check-res-head"><span class="badge">🟡</span><b>CHƯA CÓ TRONG DANH SÁCH ĐEN - CẦN CẢNH GIÁC</b></div>
+        <p>Số hoặc đường dẫn <strong>"${esc(val)}"</strong> chưa bị tố cáo, nhưng có thể là tài khoản mới tạo của kẻ gian.</p>
+        <div class="why">⚠️ <strong>Lời khuyên:</strong> Hãy bấm nút "Hỏi người thân" bên dưới để con cháu hoặc cơ quan đoàn thể kiểm tra giúp trước khi chuyển tiền!</div>
+      </div>`;
+    if(seniorMode) speakVoice('Cảnh báo cần kiểm tra thêm. Bác hãy hỏi ý kiến người thân trước.');
+  }
+}
+
+/* Voice Synthesizer with Vietnamese filter & Zalo/FPT AI Voice Architecture */
+
+
+/* API Zalo AI / FPT.AI Voice Architecture (Dành cho Chung kết 24h & Người cao tuổi) */
+async function callFptAiVoice(text, voiceType = 'banmai'){
+  // Kiến trúc gọi FPT.AI / Zalo AI TTS API:
+  // POST https://api.fpt.ai/hmi/tts/v5
+  // Headers: { 'api-key': 'YOUR_API_KEY', 'voice': voiceType }
+  // Body: text
+  // Returns: audio URL (MP3) -> play audio smoothly
+  console.log('[FPT.AI / Zalo TTS Voice Ready]:', text);
+}
+
+
+function handleReportSubmit(e){
+  e.preventDefault();
+  const target = $('repTarget').value;
+  const loc = $('repLoc').options[$('repLoc').selectedIndex].text;
+  toast('✅ Đã tiếp nhận tin báo về đối tượng: ' + target + ' tại ' + loc);
+  $('reportForm').reset();
+  setTimeout(()=>{
+    toast('Cảm ơn bạn đã chung tay bảo vệ an ninh mạng Đồng Nai!');
+    navTo('stats');
+  }, 1200);
+}
+
+function previewUpload(e){
+  const file = e.target.files[0];
+  if(file){
+    $('uploadHint').textContent = '✅ Đã đính kèm ảnh: ' + file.name;
+    toast('Đã tải ảnh bằng chứng thành công');
+  }
+}
+
+
+function logout(){
+  S.name = '';
+  S.school = '';
+  S.scores = {};
+  save();
+  $('inName').value = '';
+  $('inSchool').value = '';
+  $('bottomNav').classList.remove('show');
+  show('home');
+  toast('Đã quay về màn hình Đăng nhập / Bắt đầu');
+}
+
+/* ============================================================ HOME */
+$('startForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const n=$('inName').value.trim(); if(!n){ $('inName').focus(); return; }
+  if(n!==S.name) S.scores={};
+  S.name=n; S.school=$('inSchool').value.trim(); save(); renderMap(); navTo('map');
+});
+if(S.name){ $('inName').value=S.name; $('inSchool').value=S.school||''; }
+
+
+/* Professional vector SVG icons for 10 scenarios (No amateur emojis) */
+function getScenarioSVG(id){
+  const I = {
+    'cong-an': '<svg viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polygon points="12 8 13.5 11 17 11.5 14.5 14 15 17.5 12 16 9 17.5 9.5 14 7 11.5 10.5 11 12 8"/></svg>',
+    'viec-lam': '<svg viewBox="0 0 24 24" fill="none" stroke="#0284C7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+    'trung-thuong': '<svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',
+    'hoc-bong': '<svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+    'ban-than': '<svg viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="12"/><line x1="19" y1="16" x2="19.01" y2="16"/></svg>',
+    've-concert': '<svg viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><line x1="9" y1="5" x2="9" y2="19" stroke-dasharray="2 2"/></svg>',
+    'bat-coc': '<svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    'link-la': '<svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    'nhiem-vu-online': '<svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    'lua-dao-tinh-cam': '<svg viewBox="0 0 24 24" fill="none" stroke="#DB2777" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+  };
+  return I[id] || '<svg viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+}
+
+function getScenarioBg(id){
+  const B = {
+    'cong-an': '#EFF6FF',
+    'viec-lam': '#F0F9FF',
+    'trung-thuong': '#EEF2FF',
+    'hoc-bong': '#F5F3FF',
+    'ban-than': '#ECFEFF',
+    've-concert': '#FFF1F2',
+    'bat-coc': '#FEF2F2',
+    'link-la': '#FFFBEB',
+    'nhiem-vu-online': '#F0FDFA',
+    'lua-dao-tinh-cam': '#FDF2F8'
+  };
+  return B[id] || '#F1F5F9';
+}
+
+/* ============================================================ MAP */
+function renderMap(){
+  $('mapHi').textContent=`Xin chào, ${S.name} 👋`;
+  const d=doneCount();
+  $('mapBar').style.width=(d/SCENARIOS.length*100)+'%';
+  $('mapDone').textContent=`${d}/${SCENARIOS.length} hoàn thành`;
+  $('mapScore').textContent=`🛡️ ${total()}/${MAX} điểm khiên`;
+  const all=d===SCENARIOS.length;
+  const itemsHtml = SCENARIOS.map((s,i)=>{
+    const sc=S.scores[s.id];
+    let st=`<span class="st new">Chơi</span>`;
+    if(sc!==undefined){ const v=verdictOf(sc)[0]; st=`<span class="st ${v==='good'?'ok':v}">${sc} đ</span>`; }
+    return `<button class="lvl" data-i="${i}"><span class="ic" style="background:${getScenarioBg(s.id)}">${getScenarioSVG(s.id)}</span><span class="tx"><b>${i+1}. ${s.title}</b><small>${s.plat} · ${s.tag} · ${s.diff}</small></span>${st}</button>`;
+  }).join('');
+
+  const certFootHtml = `
+    <div class="map-foot" style="margin-top:16px;padding:14px;background:#FFFFFF;border-radius:18px;border:1.5px solid #E2E8F0;text-align:center">
+      <button class="btn btn-primary" id="btnCert" ${all?'':'disabled'} style="width:100%">🏅 Nhận chứng chỉ Công dân số an toàn</button>
+      <small id="certHint" style="display:block;margin-top:8px;color:var(--muted);font-size:12px">${all?'Chúc mừng! Bạn đã hoàn thành xuất sắc tất cả 10 tình huống!':`Cần hoàn thành thêm ${SCENARIOS.length-d} tình huống để nhận chứng chỉ`}</small>
+    </div>
+  `;
+
+  $('mapList').innerHTML = itemsHtml + certFootHtml;
+  $('mapList').querySelectorAll('.lvl').forEach(b=>b.onclick=()=>play(+b.dataset.i));
+  const bCert = $('btnCert');
+  if(bCert) bCert.onclick=()=>{ renderResult(); show('result'); };
+}
+
+/* ============================================================ CHAT ENGINE */
+function play(i){
+  cur={i,s:SCENARIOS[i]}; runId++;
+  const s=cur.s;
+  $('cAv').textContent=s.persona.av; $('cAv').style.background=s.color;
+  $('cName').textContent=s.persona.name; $('cSub').textContent=s.persona.sub; $('cPlat').textContent=s.plat;
+  $('cTag').textContent=`Tình huống ${i+1}/${SCENARIOS.length} · ${s.tag}`;
+  $('cDots').innerHTML=SCENARIOS.map((x,k)=>`<i class="${k===i?'cur':(S.scores[x.id]!==undefined?'done':'')}"></i>`).join('');
+  $('msgs').innerHTML=''; $('msgs').classList.remove('revealed');
+  $('dock').className='dock'; $('sheetBg').classList.remove('show');
+  $('bottomNav').classList.remove('show'); show('chat'); runStep(0);
+}
+let lastFrom=null;
+function addRow(m){
+  const box=$('msgs');
+  if(m.f==='sys'){ const d=document.createElement('div'); d.className='sys'; d.innerHTML=fmt(m.text); box.appendChild(d); lastFrom='sys'; }
+  else{
+    const row=document.createElement('div');
+    row.className='row '+m.f+(lastFrom===m.f?' cont':'');
+    const inner = m.html ? `<div class="bub raw"><div class="${m.flag?'flag-card':''}">${fill(m.html)}</div></div>` : `<div class="bub">${fmt(m.text)}</div>`;
+    row.innerHTML = (m.f==='them'?`<span class="mini" style="background:${cur.s.color}">${cur.s.persona.av}</span>`:'') + inner;
+    box.appendChild(row); lastFrom=m.f;
+  }
+  box.scrollTop=box.scrollHeight;
+}
+async function stream(list,id){
+  for(const m of list){
+    if(id!==runId) return false;
+    if(m.f==='them'){
+      const t=document.createElement('div'); t.className='row them'+(lastFrom==='them'?' cont':'');
+      t.innerHTML=`<span class="mini" style="background:${cur.s.color}">${cur.s.persona.av}</span><div class="bub typing"><i></i><i></i><i></i></div>`;
+      $('msgs').appendChild(t); $('msgs').scrollTop=$('msgs').scrollHeight;
+      const len=(m.text||'').length; await sleep(Math.min(1700,550+len*12));
+      if(id!==runId) return false;
+      t.remove();
+    } else await sleep(m.f==='sys'?450:350);
+    addRow(m);
+    await sleep(220);
+  }
+  return true;
+}
+async function runStep(k){
+  const id=runId; const step=cur.s.steps[k]; busy=true;
+  const dock=$('dock'); dock.className='dock show';
+  dock.innerHTML=`<div class="wait"><span>💬</span> Đang nhận tin nhắn… <button class="icon-btn" style="margin-left:auto;font-size:13px;width:auto;padding:0 10px" onclick="fast=true;$('btnFast').classList.add('on')">Tua nhanh ⏩</button></div>`;
+  const ok=await stream(step.msgs,id); if(!ok) return;
+  dock.innerHTML=`<div class="q">${shieldSVG}<span>${esc(step.q)}</span></div>`+
+    step.opts.map((o,j)=>`<button class="opt" data-j="${j}"><span class="k">${'ABCD'[j]}</span><span>${fill(esc(o.t))}</span></button>`).join('');
+  dock.querySelectorAll('.opt').forEach(b=>b.onclick=()=>choose(k,+b.dataset.j));
+  dock.scrollTop=0; busy=false;
+}
+async function choose(k,j){
+  if(busy) return; busy=true;
+  const id=runId; const o=cur.s.steps[k].opts[j];
+  $('dock').className='dock';
+  addRow({f:'me',text:o.say||o.t});
+  if(o.res){ const ok=await stream(o.res,id); if(!ok) return; }
+  if(o.next!==undefined){ await sleep(300); runStep(o.next); return; }
+  finish(o);
+}
+async function finish(o){
+  const s=cur.s, id=runId;
+  S.scores[s.id]=o.pts; save();
+  await sleep(500); if(id!==runId) return;
+  $('msgs').classList.add('revealed');
+  const box=$('msgs'); const d=document.createElement('div'); d.className='sys';
+  d.innerHTML='🛡️ Khiên đã tô vàng các <b>dấu hiệu lừa đảo</b> trong cuộc trò chuyện'; box.appendChild(d); box.scrollTop=box.scrollHeight;
+  await sleep(900); if(id!==runId) return;
+  openSheet(o);
+}
+function openSheet(o){
+  const s=cur.s, [cls,em,label]=verdictOf(o.pts);
+  const last=cur.i===SCENARIOS.length-1 || doneCount()===SCENARIOS.length;
+  const nextIdx=SCENARIOS.findIndex(x=>S.scores[x.id]===undefined);
+  $('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="verdict ${cls}"><span class="em">${em}</span><div><b>${label}</b><small>${esc(s.title)}</small></div><div class="pts"><strong>+${o.pts}</strong><span>/100 điểm</span></div></div>
+    <div class="sec"><h4>Vì sao?</h4><p>${fill(esc(o.fb))}</p></div>
+    <div class="sec"><h4>🚩 Dấu hiệu nhận biết</h4><ul class="flags">${s.flags.map(f=>`<li><span>🚩</span><span>${esc(f)}</span></li>`).join('')}</ul></div>
+    <div class="rule">${shieldSVG}<span>${esc(s.rule)}</span></div>
+    <div class="fact">📊 ${esc(s.fact)}</div>
+    <div class="btns">
+      <button class="btn btn-ghost" id="bRetry">↺ Chơi lại</button>
+      ${nextIdx===-1?`<button class="btn btn-primary" id="bNext">🏅 Nhận chứng chỉ</button>`:`<button class="btn btn-primary" id="bNext">Tiếp theo →</button>`}
+    </div>
+    <button class="btn" style="margin-top:6px;color:var(--muted);font-size:14px;padding:10px" id="bReview">Xem lại đoạn chat</button>`;
+  $('sheetBg').classList.add('show');
+  $('bRetry').onclick=()=>play(cur.i);
+  $('bReview').onclick=()=>{ $('sheetBg').classList.remove('show'); const d=$('dock'); d.className='dock show'; d.innerHTML=`<button class="btn btn-primary" onclick="openSheet(S._last)">Xem lại giải thích</button>`; };
+  S._last=o;
+  $('bNext').onclick=()=>{ if(nextIdx===-1){ renderResult(); show('result'); } else play(nextIdx); };
+}
+$('btnBack').onclick=()=>{ runId++; fast=false; $('btnFast').classList.remove('on'); renderMap(); navTo('map'); };
+$('btnFast').onclick=()=>{ fast=!fast; $('btnFast').classList.toggle('on',fast); toast(fast?'Đã bật tua nhanh hội thoại':'Đã tắt tua nhanh'); };
+$('sheetBg').addEventListener('click',e=>{ if(e.target===$('sheetBg')) $('bReview').click(); });
+
+/* keyboard */
+document.addEventListener('keydown',e=>{
+  if(!$('chat').classList.contains('active')) return;
+  if($('sheetBg').classList.contains('show')){ if(e.key==='Enter') $('bNext').click(); return; }
+  const n=parseInt(e.key,10); if(n>=1&&n<=4){ const b=$('dock').querySelector(`.opt[data-j="${n-1}"]`); if(b) b.click(); }
+});
+
+/* ============================================================ RESULT + CERTIFICATE */
+function rankOf(p){ return p>=.85?{t:'Hạng Vàng',c:'#F5B700'}:p>=.65?{t:'Hạng Bạc',c:'#C0C8D8'}:{t:'Hạng Đồng',c:'#D08A4E'}; }
+function certId(){ let h=0; const s=S.name+total(); for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return 'CL101-DN-'+h.toString(36).toUpperCase().slice(0,6).padStart(6,'0'); }
+
+async function drawCert(){
+  try{ await document.fonts.ready; }catch(e){}
+  const W=1200,H=630,cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+  const p=total()/MAX, r=rankOf(p), F='"Be Vietnam Pro", system-ui, sans-serif';
+  const g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,'#16306F'); g.addColorStop(.6,'#0B1B3F'); g.addColorStop(1,'#060E24');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  // decorative circles
+  x.globalAlpha=.07; x.fillStyle='#5BE39B'; x.beginPath(); x.arc(1080,90,260,0,7); x.fill(); x.beginPath(); x.arc(80,600,200,0,7); x.fill(); x.globalAlpha=1;
+  // border
+  x.strokeStyle=r.c; x.lineWidth=4; x.strokeRect(28,28,W-56,H-56); x.globalAlpha=.4; x.lineWidth=1.5; x.strokeRect(42,42,W-84,H-84); x.globalAlpha=1;
+  // shield
+  const sh=(cx,cy,s)=>{ x.save(); x.translate(cx,cy); x.scale(s,s); x.translate(-60,-60);
+    const p1=new Path2D('M60 6 L104 22 V58 C104 84 86 104 60 114 C34 104 16 84 16 58 V22 Z'); const gg=x.createLinearGradient(0,0,0,120); gg.addColorStop(0,'#5BE39B'); gg.addColorStop(1,'#0FA864'); x.fillStyle=gg; x.fill(p1);
+    x.strokeStyle='#fff'; x.lineWidth=10; x.lineCap='round'; x.lineJoin='round'; x.stroke(new Path2D('M40 60 L54 74 L82 44')); x.restore(); };
+  sh(170,300,1.9);
+  // medal ribbon text
+  x.fillStyle=r.c; x.font=`800 20px ${F}`; x.textAlign='center'; x.fillText(r.t.toUpperCase(),170,450);
+  x.fillStyle='#A9B8E3'; x.font=`600 15px ${F}`; x.fillText(`${total()}/${MAX} điểm`,170,476);
+  // text block
+  x.textAlign='left'; const L=330;
+  x.fillStyle='#5BE39B'; x.font=`700 18px ${F}`; x.fillText('CHỐNG LỪA 101 · CHỨNG CHỈ', L, 120);
+  x.fillStyle='#fff'; x.font=`800 54px ${F}`; x.fillText('Công dân số an toàn', L, 185);
+  x.fillStyle='#A9B8E3'; x.font=`500 20px ${F}`; x.fillText('Trao cho', L, 245);
+  let fs=58; x.font=`800 ${fs}px ${F}`; while(x.measureText(S.name).width>800&&fs>30){ fs-=2; x.font=`800 ${fs}px ${F}`; }
+  x.fillStyle=r.c; x.fillText(S.name, L, 310);
+  x.fillStyle='#C8D3EE'; x.font=`500 19px ${F}`;
+  if(S.school) x.fillText(S.school, L, 348);
+  const lines=['Đã vượt qua 8 tình huống mô phỏng lừa đảo trực tuyến: mạo danh công an,','việc làm online, trúng thưởng, học bổng giả, hack tài khoản, bắt cóc online…'];
+  lines.forEach((l,i)=>x.fillText(l, L, (S.school?395:375)+i*30));
+  x.strokeStyle='rgba(255,255,255,.15)'; x.lineWidth=1; x.beginPath(); x.moveTo(L,500); x.lineTo(W-80,500); x.stroke();
+  const d=new Date(); x.fillStyle='#7D8EBB'; x.font=`500 16px ${F}`;
+  x.fillText(`Ngày cấp: ${d.toLocaleDateString('vi-VN')}`, L, 535);
+  x.fillText(`Mã chứng chỉ: ${certId()}`, L+250, 535);
+  x.fillStyle='#fff'; x.font=`700 16px ${F}`; x.textAlign='right'; x.fillText('#ChongLua101  #CongDanSoAnToan', W-80, 568);
+  x.textAlign='left'; x.fillStyle='#7D8EBB'; x.font=`500 14px ${F}`; x.fillText('Biết dấu hiệu · Dừng lại · Xác minh · Báo người thân · Gọi 113', L, 568);
+  return cv.toDataURL('image/png');
+}
+
+function shareText(){ const r=rankOf(total()/MAX); return `Mình vừa đạt chứng chỉ “Công dân số an toàn” – ${r.t} với ${total()}/${MAX} điểm trong game Chống lừa 101! 🛡️ Bạn có né được 8 chiêu lừa đảo phổ biến nhất với HS-SV không? 👉 ${shareUrl()} #ChongLua101`; }
+function shareUrl(){ try{ return location.href.split('#')[0]; }catch(e){ return ''; } }
+async function copy(t,msg){ try{ await navigator.clipboard.writeText(t); toast(msg); }catch(e){ toast('Không sao chép được – hãy chọn và sao chép thủ công'); } }
+
+async function renderResult(){
+  const p=total()/MAX, r=rankOf(p), el=$('resScroll');
+  if(p<.5){
+    el.innerHTML=`<div class="res-head"><small>${esc(S.name)}</small><h2>Gần được rồi!</h2></div>
+    <div class="fail-box"><div class="em">🛡️</div><h3>${total()}/${MAX} điểm</h3><p>Cần đạt tối thiểu 50% (${MAX/2} điểm) để nhận chứng chỉ “Công dân số an toàn”. Hãy chơi lại những tình huống bị đánh dấu đỏ – mỗi lần chơi lại là một lần “tiêm vắc-xin” chống lừa đảo.</p><button class="btn btn-primary" onclick="renderMap();navTo('map')">Chơi lại các tình huống →</button></div>`;
+    el.innerHTML+=summaryPanels(); return;
+  }
+  el.innerHTML=`<div class="res-head"><small>Chúc mừng ${esc(S.name)} 🎉</small><h2>Công dân số an toàn</h2></div>
+    <img class="cert-img" id="certImg" alt="Chứng chỉ Công dân số an toàn">
+    <div class="share">
+      <a class="fb" id="shFb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl())}" target="_blank" rel="noopener">Chia sẻ Facebook</a>
+      <button class="zl" id="shZl">Chia sẻ Zalo</button>
+      <a class="cp" id="shDl" download="chung-chi-cong-dan-so-an-toan.png" href="#">⬇️ Tải ảnh chứng chỉ (PNG)</a>
+      <button class="cp" id="shCp">📋 Sao chép lời khoe + link</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin:-6px 0 14px">Nhấn giữ (điện thoại) hoặc chuột phải (máy tính) vào ảnh để lưu chứng chỉ.</p>`+summaryPanels();
+  const png=await drawCert(); $('certImg').src=png; $('shDl').href=png;
+  $('shCp').onclick=()=>copy(shareText(),'Đã sao chép – dán vào bài đăng của bạn nhé!');
+  $('shZl').onclick=()=>copy(shareText(),'Đã sao chép lời khoe – mở Zalo, dán kèm ảnh chứng chỉ!');
+}
+function summaryPanels(){
+  const bars=SCENARIOS.map(s=>{ const v=S.scores[s.id]||0; const c=v>=80?'#12B76A':v>=40?'#F79009':'#E5484D'; return `<div class="b"><span>${s.icon} ${esc(s.title)}</span><em><i style="width:${v}%;background:${c}"></i></em><strong>${v}</strong></div>`; }).join('');
+  const weak=SCENARIOS.filter(s=>(S.scores[s.id]||0)<80);
+  return `<div class="panel"><h3>📈 Kết quả từng tình huống</h3><div class="bars">${bars}</div>
+    ${weak.length?`<p style="font-size:13px;color:var(--muted);margin-top:10px">Nên ôn lại: ${weak.map(s=>esc(s.title)).join(', ')}.</p>`:`<p style="font-size:13px;color:var(--green-d);margin-top:10px;font-weight:600">Hoàn hảo! Bạn xử lý an toàn mọi tình huống.</p>`}</div>
+  <div class="panel"><h3>🛡️ Quy tắc “5 KHÔNG” mang theo</h3><ul class="rules5">
+    <li><b>KHÔNG</b><span>chuyển tiền cho người chưa xác minh trực tiếp – kể cả “công an”, “bạn thân”.</span></li>
+    <li><b>KHÔNG</b><span>đưa OTP, mật khẩu, ảnh CCCD cho bất kỳ ai.</span></li>
+    <li><b>KHÔNG</b><span>bấm link lạ, không cài app ngoài App Store/Google Play.</span></li>
+    <li><b>KHÔNG</b><span>giữ bí mật khi bị đe doạ – nói ngay với bố mẹ, thầy cô.</span></li>
+    <li><b>KHÔNG</b><span>tin việc nhẹ lương cao, quà miễn phí, học bổng phải nộp phí.</span></li></ul></div>
+  <div class="panel"><h3>☎️ Khi gặp sự cố thật</h3><div class="hot">
+    <div><b>113</b>Cảnh sát phản ứng nhanh</div>
+    <div><b>Công an phường</b>Nơi bạn cư trú</div>
+    <div><b>Hotline ngân hàng</b>Khoá tài khoản ngay</div>
+    <div><b>Nhà trường</b>GVCN / Phòng CTSV</div></div></div>
+  <button class="btn btn-ghost" onclick="renderMap();navTo('map')">← Về danh sách tình huống</button>`;
+}
+
+/* boot: Hiển thị trang theo hash hoặc mặc định trang Đăng nhập */
+if(S.name){
+  $('inName').value = S.name;
+  $('inSchool').value = S.school || '';
+}
+const h = location.hash.replace('#','');
+if(h && ['map','check','report','stats'].includes(h)){
+  if(!S.name) S.name = 'Nguyễn Minh Khang';
+  renderMap();
+  navTo(h);
+} else {
+  show('home');
+  $('bottomNav').classList.remove('show');
+}
+
+
+/* ============================================================
+   ROLE SELECTION & USER STATE ENHANCEMENTS
+   ============================================================ */
+let selectedUserRole = 'student';
+
+// Setup role selection click events
+document.addEventListener('DOMContentLoaded', () => {
+  initRoleSelector();
+});
+
+function initRoleSelector(){
+  const cards = document.querySelectorAll('.role-card');
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedUserRole = card.getAttribute('data-role');
+      if(selectedUserRole === 'senior'){
+        if(!seniorMode) toggleSenior();
+      } else {
+        if(seniorMode) toggleSenior();
+      }
+    });
+  });
+}
+
+function quickGuestLogin(){
+  $('inName').value = 'Khách tham quan';
+  $('inSchool').value = 'Đồng Nai 2026';
+  selectedUserRole = 'student';
+  enterAppWithRole('Khách tham quan', 'Đồng Nai 2026', 'student');
+}
+
+function enterAppWithRole(name, school, role){
+  S.name = name;
+  S.school = school;
+  S.role = role || selectedUserRole;
+  save();
+
+  const roleText = S.role === 'senior' ? 'Người cao tuổi' : (S.role === 'volunteer' ? 'Cán bộ / Tình nguyện viên' : 'Học sinh / Sinh viên');
+  if($('mapHi')) $('mapHi').textContent = `Xin chào, ${S.name} • ${roleText}`;
+
+  if(S.role === 'senior' && !seniorMode){
+    toggleSenior();
+  }
+
+  renderMap();
+  if(S.role === 'volunteer'){
+    navTo('check');
+  } else {
+    navTo('map');
+  }
+}
+
+// Modify startForm submit
+$('startForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = $('inName').value.trim();
+  if(!n){ $('inName').focus(); return; }
+  const s = $('inSchool').value.trim();
+  enterAppWithRole(n, s, selectedUserRole);
+});
+
+// Sync mapHi when reloading from saved state
+if(S.name){
+  $('inName').value = S.name;
+  $('inSchool').value = S.school || '';
+  if(S.role) selectedUserRole = S.role;
+  const roleText = S.role === 'senior' ? 'Người cao tuổi' : (S.role === 'volunteer' ? 'Cán bộ / Tình nguyện viên' : 'Học sinh / Sinh viên');
+  if($('mapHi')) $('mapHi').textContent = `Xin chào, ${S.name} • ${roleText}`;
+}
+
+/* ============================================================
+   MODAL SOS & POLICE RECEIPT CONTROLS
+   ============================================================ */
+function openSosModal(){
+  const modal = $('modalSos');
+  if(!modal) return;
+  modal.classList.add('show');
+}
+function closeSosModal(){
+  const modal = $('modalSos');
+  if(!modal) return;
+  modal.classList.remove('show');
+}
+function sendSosZalo(){
+  const target = $('sosTargetSelect').value;
+  const msg = $('sosMessageBody').value;
+  navigator.clipboard.writeText(msg).then(() => {
+    toast('✅ Đã sao chép tin nhắn khẩn cấp! Đang chuyển tiếp sang Zalo gửi cho: ' + target);
+  }).catch(() => {
+    toast('✅ Đang chuyển tiếp tin nhắn khẩn cấp đến: ' + target);
+  });
+  setTimeout(() => {
+    window.open('https://zalo.me', '_blank');
+    closeSosModal();
+  }, 1000);
+}
+
+function openReceiptModal(targetVal){
+  const modal = $('modalPoliceReceipt');
+  if(!modal) return;
+  const randNum = Math.floor(1000 + Math.random() * 9000);
+  if($('recCode')) $('recCode').textContent = `#CADN-2026-${randNum}`;
+  if($('recTargetVal')) $('recTargetVal').textContent = targetVal || 'Số điện thoại nghi vấn';
+  const now = new Date();
+  if($('recTime')) $('recTime').textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} - ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+  modal.classList.add('show');
+}
+function closeReceiptModal(){
+  const modal = $('modalPoliceReceipt');
+  if(!modal) return;
+  modal.classList.remove('show');
+  navTo('stats');
+}
+
+/* ============================================================
+   ENHANCED CHECK & SAMPLE DATA
+   ============================================================ */
+const KNOWN_SCAMS_LIST = [
+  { val:'0899214', type:'sdt', title:'CỰC KỲ NGUY HIỂM – MẠO DANH CÔNG AN', desc:'Số điện thoại này đã có 42 lượt phản ánh giả danh cán bộ Công an Đồng Nai (Thượng úy Đức) yêu cầu chuyển tiền!' },
+  { val:'0792512', type:'sdt', title:'CỰC KỲ NGUY HIỂM – BẮT CÓC ONLINE', desc:'Số điện thoại bị báo cáo đe dọa sinh viên, ép thuê phòng trọ/khách sạn một mình để tống tiền gia đình.' },
+  { val:'9704031182', type:'stk', title:'TÀI KHOẢN ĐEN ĐÃ BỊ TỐ CÁO', desc:'Số tài khoản TRAN VAN TUAN nằm trong danh sách đen nhận tiền chiếm đoạt lừa đảo qua mạng.' },
+  { val:'0451000789', type:'stk', title:'TÀI KHOẢN CẦN CẢNH GIÁC CAO', desc:'Tài khoản thường xuyên nhận tiền đặt cọc vé, mua hàng qua mạng nghi vấn gian lận.' },
+  { val:'dinhdanh-bocongan.app', type:'link', title:'LINK ĐỘC HẠI – CHỨA MÃ ĐỘC APK', desc:'Trang web giả mạo Cổng Dịch vụ công để lừa cài đặt ứng dụng VNeID giả nhằm rút sạch tiền!' },
+  { val:'sieusale-trian.vip', type:'link', title:'LINK LỪA ĐẢO TRÚNG THƯỞNG', desc:'Website giả mạo tri ân khách hàng nhằm chiếm đoạt tiền phí vận chuyển và mã OTP.' },
+  { val:'appeal-center-fb.top', type:'link', title:'TRANG PHISHING ĐÁNH CẮP TÀI KHOẢN', desc:'Trang mạo danh trung tâm hỗ trợ Facebook để lấy cắp mật khẩu và mã xác thực 2 lớp.' }
+];
+
+function applySampleCheck(type){
+  switchCheckTab('text');
+  if(type === 'congan'){
+    $('checkInput').value = 'Chào anh, tôi là Thượng úy Trần Minh Đức - Công an điều tra. Số CCCD của anh liên quan đường dây rửa tiền, yêu cầu chuyển 15 triệu vào tài khoản tạm giữ 0899214 để kiểm tra.';
+  } else if(type === 'vieclam'){
+    $('checkInput').value = 'Tuyển cộng tác viên làm thêm tại nhà: xem video TikTok, hoa hồng 300k/ngày, nạp tiền 500k làm nhiệm vụ đơn hàng hoàn tiền ngay.';
+  } else if(type === 'shopee'){
+    $('checkInput').value = 'Chúc mừng bạn được chọn giật đơn Shopee VIP! Làm nhiệm vụ combo 3 đơn liên hoàn nạp 10 triệu để nhận hoa hồng 15 triệu trong ngày.';
+  } else if(type === 'ngoai_te'){
+    $('checkInput').value = 'Anh Robert Chen vừa gửi thùng quà gồm kim cương và 50.000 USD tiền mặt về Đồng Nai. Hải quan yêu cầu nộp 15 triệu phí thông quan vào STK cá nhân.';
+  }
+  runCheck();
+}
+
+function transferToReport(targetVal, reasonText){
+  navTo('report');
+  if($('repTarget')) $('repTarget').value = targetVal || '';
+  if($('repDesc')) $('repDesc').value = reasonText ? `Phát hiện qua công cụ Tra cứu an toàn: ${reasonText}` : '';
+  toast('📋 Đã chuyển thông tin đối tượng sang form Báo cáo Công an!');
+}
+
+// Override runCheck to support KNOWN_SCAMS & Direct Transfer
+function runCheck(){
+  const val = $('checkInput').value.trim();
+  if(!val){ $('checkInput').focus(); toast('Vui lòng nhập nội dung cần kiểm tra'); return; }
+  const resBox = $('checkResult');
+  resBox.style.display = 'block';
+
+  const vLow = val.toLowerCase();
+  
+  // Check against known scams database
+  const matched = KNOWN_SCAMS_LIST.find(s => vLow.includes(s.val.toLowerCase()));
+  if(matched){
+    resBox.innerHTML = `
+      <div class="check-res danger">
+        <div class="check-res-head"><span class="badge">🔴</span><b>${matched.title}</b></div>
+        <p>Thông tin: <strong>"${esc(val)}"</strong></p>
+        <div class="why">⚠️ <strong>Hồ sơ lưu trữ:</strong> ${matched.desc}</div>
+        <div style="margin-top:10px">
+          <button type="button" class="btn btn-sm btn-danger" onclick="transferToReport('${esc(matched.val)}', '${esc(matched.title)}')">🚨 Báo cáo đối tượng này cho Công an Đồng Nai</button>
+        </div>
+      </div>`;
+    if(seniorMode) speakVoice('Cảnh báo cực kỳ nguy hiểm! Thông tin này nằm trong danh sách đen lừa đảo của Công an.');
+    return;
+  }
+
+  const isDanger = /0899|0912|079|088|0451|9704|\.vip|\.apk|\.top|\.xyz|công an|viện kiểm sát|rửa tiền|nhiệm vụ|hoa hồng|việc nhẹ|trúng thưởng|tri an|trian|cấp cứu|viện phí|tạm giữ|bắt cóc|50\.000 usd|nhận quà|robert chen|hải quan/i.test(vLow);
+  const isSafe = /113|115|dongnai\.gov\.vn|chinhphu\.vn|vneid\.gov\.vn|vietcombank|agribank/i.test(vLow);
+
+  if(isDanger){
+    resBox.innerHTML = `
+      <div class="check-res danger">
+        <div class="check-res-head"><span class="badge">🔴</span><b>CẢNH BÁO NGUY HIỂM CAO!</b></div>
+        <p>Thông tin <strong>"${esc(val)}"</strong> có dấu hiệu lừa đảo trực tuyến rõ rệt.</p>
+        <div class="why">⚠️ <strong>Lý do:</strong> Đã có nhiều phản ánh tại Đồng Nai về hành vi mạo danh cơ quan chức năng hoặc tuyển CTV việc nhẹ lương cao / giật đơn. Tuyệt đối KHÔNG chuyển tiền, KHÔNG bấm link!</div>
+        <div style="margin-top:10px">
+          <button type="button" class="btn btn-sm btn-danger" onclick="transferToReport('${esc(val)}', 'Có dấu hiệu lừa đảo qua AI Scanner')">🚨 Báo cáo đối tượng này cho Công an Đồng Nai</button>
+        </div>
+      </div>`;
+    if(seniorMode) speakVoice('Cảnh báo nguy hiểm! Tuyệt đối không chuyển tiền và không làm theo hướng dẫn.');
+  } else if(isSafe){
+    resBox.innerHTML = `
+      <div class="check-res safe">
+        <div class="check-res-head"><span class="badge">🟢</span><b>AN TOÀN - CHÍNH THỐNG</b></div>
+        <p>Thông tin <strong>"${esc(val)}"</strong> là cổng thông tin hoặc đường dây nóng chính thống của cơ quan nhà nước.</p>
+        <div class="why">✅ Bạn có thể yên tâm sử dụng theo các kênh liên lạc chính thức.</div>
+      </div>`;
+    if(seniorMode) speakVoice('An toàn. Đây là cổng thông tin chính thống.');
+  } else {
+    resBox.innerHTML = `
+      <div class="check-res warning">
+        <div class="check-res-head"><span class="badge">🟡</span><b>CHƯA CÓ TRONG DANH SÁCH ĐEN - CẦN CẢNH GIÁC</b></div>
+        <p>Số hoặc đường dẫn <strong>"${esc(val)}"</strong> chưa bị tố cáo, nhưng có thể là tài khoản mới tạo của kẻ gian.</p>
+        <div class="why">⚠️ <strong>Lời khuyên:</strong> Hãy bấm nút "Hỏi người thân" bên dưới để con cháu hoặc cơ quan đoàn thể kiểm tra giúp trước khi chuyển tiền!</div>
+        <div style="margin-top:10px">
+          <button type="button" class="btn btn-sm btn-ghost" onclick="openSosModal()">🆘 Hỏi ý kiến người thân ngay</button>
+        </div>
+      </div>`;
+    if(seniorMode) speakVoice('Cảnh báo cần kiểm tra thêm. Bác hãy hỏi ý kiến người thân trước.');
+  }
+}
+
+// Override handleReportSubmit to show modalPoliceReceipt
+function handleReportSubmit(e){
+  e.preventDefault();
+  const target = $('repTarget').value.trim();
+  const loc = $('repLoc') ? $('repLoc').options[$('repLoc').selectedIndex].text : 'Tỉnh Đồng Nai';
+  openReceiptModal(target);
+  $('reportForm').reset();
+}
+
+</script>
+</main>
+</body>
+</html>
