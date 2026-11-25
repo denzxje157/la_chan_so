@@ -1557,23 +1557,15 @@ button:active, .btn:active, .act-btn:active, .qc-btn:active {
       <!-- KHỐI 3: SOS HỎI NGƯỜI THÂN (MÀN BẮT BUỘC) -->
       <div class="sos-card">
         <span class="sos-badge">🆘 HỎI Ý KIẾN NGƯỜI THÂN</span>
-        <h3>Bác đang phân vân cuộc gọi/tin nhắn?</h3>
-        <p>Đừng vội chuyển tiền! Hãy gửi ngay nội dung cho con cái hoặc cán bộ Đoàn xã hỗ trợ kiểm tra.</p>
-        <div class="contacts-list">
-          <div class="contact-item">
-            <div class="ci-av">👤</div>
-            <div class="ci-info"><b>Con trai (Nguyễn Tuấn)</b><small>0988 xxx 214 · Số liên hệ khẩn cấp</small></div>
-            <div class="ci-acts">
-              <button type="button" class="ci-act zalo" onclick="openSosModal()" style="border:none;cursor:pointer">Zalo</button>
-              <button type="button" class="ci-act sms" onclick="openSosModal()" style="border:none;cursor:pointer">SMS</button>
-            </div>
-          </div>
-          <div class="contact-item">
-            <div class="ci-av" style="background:#EBF3FF;color:#2E6BFF">🛡️</div>
-            <div class="ci-info"><b>Cán bộ Đoàn xã Hóa An</b><small>Đội thanh niên tình nguyện hỗ trợ số</small></div>
-            <div class="ci-acts">
-              <a class="ci-act tel" href="tel:113">Gọi 113</a>
-            </div>
+        <h3 id="sosCheckHeading">Đang phân vân cuộc gọi/tin nhắn?</h3>
+        <p id="sosCheckSub">Đừng vội chuyển tiền! Hãy gọi ngay cho người thân hoặc cán bộ hỗ trợ kiểm tra.</p>
+        <div class="contacts-list" id="checkContactsList"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #CBD5E1">
+          <div style="font-size:11.5px;font-weight:700;color:#0F172A;margin-bottom:6px">+ Thêm số điện thoại người thân:</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input type="text" id="newRelNameCheck" placeholder="Tên / Quan hệ (vd: Con trai, Mẹ)" style="flex:1;min-width:120px;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-size:12px">
+            <input type="tel" id="newRelPhoneCheck" placeholder="Số điện thoại (vd: 0988...)" style="flex:1;min-width:120px;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-size:12px">
+            <button type="button" class="btn btn-primary" onclick="addEmergencyContact('check')" style="width:auto;padding:7px 12px;font-size:12px;border-radius:8px !important">Lưu số</button>
           </div>
         </div>
       </div>
@@ -1881,18 +1873,23 @@ function scrollCurrentBodyToTop(){
     </p>
 
     <div class="form-group" style="margin-bottom:8px">
-      <label style="font-size:11.5px;font-weight:700;color:var(--ink);display:block;margin-bottom:3px">Gửi cứu trợ đến ai?</label>
-      <select id="sosTargetSelect" class="form-control" style="width:100%;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:12px">
-        <option value="Con trai (Nguyễn Tuấn - 0988.214.xxx)">Con trai (Nguyễn Tuấn - 0988.214.xxx)</option>
-        <option value="Con gái (Nguyễn Mai - 0912.888.xxx)">Con gái (Nguyễn Mai - 0912.888.xxx)</option>
-        <option value="Đoàn thanh niên xã Hóa An">Đội Thanh niên tình nguyện xã Hóa An</option>
-        <option value="Trực ban Công an xã / phường">Trực ban Công an xã / phường</option>
+      <label style="font-size:11.5px;font-weight:700;color:var(--ink);display:block;margin-bottom:3px">Gửi cứu trợ / Gọi điện cho ai?</label>
+      <select id="sosTargetSelect" onchange="updateSosCallLink()" class="form-control" style="width:100%;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:12px">
       </select>
+    </div>
+
+    <div style="background:#F8FAFC;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:#1E40AF;margin-bottom:5px">+ Thêm số điện thoại người thân mới:</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <input type="text" id="newRelNameModal" placeholder="Quan hệ/Tên (Con trai, Mẹ...)" style="flex:1;min-width:110px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);font-size:11.5px">
+        <input type="tel" id="newRelPhoneModal" placeholder="SĐT người thân" style="flex:1;min-width:105px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);font-size:11.5px">
+        <button type="button" onclick="addEmergencyContact('modal')" style="background:#1E40AF;color:#fff;padding:6px 10px;border-radius:8px !important;font-size:11.5px;font-weight:700">Lưu</button>
+      </div>
     </div>
 
     <div class="form-group" style="margin-bottom:10px">
       <label style="font-size:11.5px;font-weight:700;color:var(--ink);display:block;margin-bottom:3px">Tin nhắn khẩn cấp soạn sẵn:</label>
-      <textarea id="sosMessageBody" class="form-control" style="width:100%;height:75px;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:11.5px;line-height:1.4;resize:none" readonly>Con ơi, bố/mẹ vừa nhận cuộc gọi/tin nhắn lạ xưng là Công an đòi chuyển tiền gấp vào số tài khoản lạ. Con kiểm tra giúp bố/mẹ với, bố/mẹ chưa chuyển tiền!</textarea>
+      <textarea id="sosMessageBody" class="form-control" style="width:100%;height:70px;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:11.5px;line-height:1.4;resize:none">Con ơi, bố/mẹ vừa nhận cuộc gọi/tin nhắn lạ xưng là Công an đòi chuyển tiền gấp vào số tài khoản lạ. Con kiểm tra giúp bố/mẹ với, bố/mẹ chưa chuyển tiền!</textarea>
     </div>
 
     <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:7px 9px;font-size:11px;color:#991B1B;margin-bottom:12px">
@@ -1904,9 +1901,9 @@ function scrollCurrentBodyToTop(){
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Gửi qua Zalo</span>
       </button>
-      <a href="tel:113" class="sos-btn tel">
+      <a id="sosCallBtn" href="tel:113" class="sos-btn tel">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <span>Gọi 113</span>
+        <span id="sosCallBtnLabel">Gọi 113</span>
       </a>
       <button type="button" class="sos-btn close" onclick="closeSosModal()">
         <span>Đóng</span>
@@ -5246,6 +5243,7 @@ async function switchUserGroup(group){
 
   const mTools = $('memberToolsCard');
   if(mTools) mTools.style.display = (group === 'member') ? 'block' : 'none';
+  if(typeof renderEmergencyContacts === 'function') renderEmergencyContacts();
 
   // Gửi cập nhật update_group lên Google Sheet Database
   try {
@@ -5885,7 +5883,162 @@ function applyNewsFilters(){
 /* ============================================================
    MODAL SOS & POLICE RECEIPT CONTROLS
    ============================================================ */
-function openSosModal(){
+const SOS_CONTACTS_KEY = 'cl101_emergency_contacts';
+
+function getDefaultRelativeContacts(){
+  const grp = (typeof S !== 'undefined' && S.group) ? S.group : (localStorage.getItem('cl101_group') || 'student');
+  if(grp === 'senior'){
+    return [
+      { id: 'def_son', name: 'Con trai', phone: '', isDefault: true },
+      { id: 'def_daughter', name: 'Con gái', phone: '', isDefault: true }
+    ];
+  }
+  return [
+    { id: 'def_dad', name: 'Cha (Phụ huynh)', phone: '', isDefault: true },
+    { id: 'def_mom', name: 'Mẹ (Phụ huynh)', phone: '', isDefault: true }
+  ];
+}
+
+function getEmergencyContacts(){
+  let custom = [];
+  try {
+    const raw = localStorage.getItem(SOS_CONTACTS_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)) custom = parsed;
+    }
+  } catch(e){}
+  return [...custom, ...getDefaultRelativeContacts()];
+}
+
+function renderEmergencyContacts(){
+  const list = getEmergencyContacts();
+  const grp = (typeof S !== 'undefined' && S.group) ? S.group : (localStorage.getItem('cl101_group') || 'student');
+
+  // Cập nhật lời nhắc & nội dung tin nhắn mẫu theo nhóm đối tượng chọn ở Trang chủ
+  const msgEl = $('sosMessageBody');
+  if(msgEl && !msgEl.dataset.edited){
+    msgEl.value = grp === 'senior'
+      ? 'Con ơi, bố/mẹ vừa nhận cuộc gọi/tin nhắn lạ xưng là Công an đòi chuyển tiền gấp vào số tài khoản lạ. Con kiểm tra giúp bố/mẹ với, bố/mẹ chưa chuyển tiền!'
+      : 'Cha/mẹ ơi, con vừa nhận được cuộc gọi/tin nhắn lạ có dấu hiệu lừa đảo đòi chuyển tiền. Cha/mẹ kiểm tra giúp con với nhé!';
+  }
+
+  // 1. Render danh sách ở màn #check
+  const checkBox = $('checkContactsList');
+  if(checkBox){
+    const rows = list.map((c, idx) => `
+      <div class="contact-item">
+        <div class="ci-av">👤</div>
+        <div class="ci-info">
+          <b>${esc(c.name)}</b>
+          <small>${c.phone ? esc(c.phone) + ' · Số người thân đã lưu' : 'Chưa gắn SĐT — hãy nhập số ở dưới'}</small>
+        </div>
+        <div class="ci-acts">
+          ${c.phone ? `<a class="ci-act tel" href="tel:${esc(c.phone.replace(/[^0-9+]/g,''))}">Gọi</a>` : ''}
+          <button type="button" class="ci-act zalo" onclick="openSosModal('${esc(c.id)}')" style="border:none;cursor:pointer">Zalo</button>
+          ${!c.isDefault ? `<button type="button" onclick="removeEmergencyContact('${esc(c.id)}')" style="border:none;background:#FEE2E2;color:#DC2626;border-radius:8px;padding:4px 7px;font-size:11px;cursor:pointer" title="Xóa số này">✕</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+    checkBox.innerHTML = rows + `
+      <div class="contact-item">
+        <div class="ci-av" style="background:#EBF3FF;color:#2E6BFF">🛡️</div>
+        <div class="ci-info"><b>Tổng đài Công an & PA05</b><small>Trực ban hỗ trợ khẩn cấp 24/7</small></div>
+        <div class="ci-acts">
+          <a class="ci-act tel" href="tel:113">Gọi 113</a>
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Render dropdown trong #modalSos
+  const sel = $('sosTargetSelect');
+  if(sel){
+    const prev = sel.value;
+    sel.innerHTML = list.map(c => {
+      const label = c.phone ? `${c.name} (${c.phone})` : `${c.name} (chưa có SĐT)`;
+      return `<option value="${esc(label)}" data-phone="${esc(c.phone || '')}">${esc(label)}</option>`;
+    }).join('') + `<option value="Trực ban Công an xã / phường (113)" data-phone="113">Trực ban Công an xã / phường (113)</option>`;
+    if(prev && Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
+    updateSosCallLink();
+  }
+}
+
+function updateSosCallLink(){
+  const sel = $('sosTargetSelect');
+  const btn = $('sosCallBtn');
+  const lbl = $('sosCallBtnLabel');
+  if(!sel || !btn || !lbl) return;
+  const opt = sel.options[sel.selectedIndex];
+  const phone = opt ? (opt.getAttribute('data-phone') || '').replace(/[^0-9+]/g, '') : '';
+  if(phone){
+    btn.href = 'tel:' + phone;
+    lbl.textContent = phone === '113' ? 'Gọi 113' : ('Gọi ' + phone);
+  } else {
+    btn.href = 'tel:113';
+    lbl.textContent = 'Gọi 113';
+  }
+}
+
+function addEmergencyContact(src){
+  const nameEl = $(src === 'modal' ? 'newRelNameModal' : 'newRelNameCheck');
+  const phoneEl = $(src === 'modal' ? 'newRelPhoneModal' : 'newRelPhoneCheck');
+  const name = (nameEl ? nameEl.value : '').trim();
+  const phone = (phoneEl ? phoneEl.value : '').trim();
+  if(!name || !phone){
+    toast('Vui lòng nhập tên/quan hệ và số điện thoại người thân!');
+    return;
+  }
+  const cleanPhone = phone.replace(/[^0-9+]/g, '');
+  if(cleanPhone.length < 9){
+    toast('Số điện thoại chưa hợp lệ (tối thiểu 9 chữ số)!');
+    return;
+  }
+  let custom = [];
+  try {
+    custom = JSON.parse(localStorage.getItem(SOS_CONTACTS_KEY) || '[]');
+    if(!Array.isArray(custom)) custom = [];
+  } catch(e){ custom = []; }
+  const newItem = { id: 'rel_' + Date.now(), name, phone: cleanPhone, isDefault: false };
+  custom.unshift(newItem);
+  localStorage.setItem(SOS_CONTACTS_KEY, JSON.stringify(custom));
+  if(nameEl) nameEl.value = '';
+  if(phoneEl) phoneEl.value = '';
+  renderEmergencyContacts();
+  const sel = $('sosTargetSelect');
+  if(sel){
+    sel.selectedIndex = 0;
+    updateSosCallLink();
+  }
+  toast('✅ Đã lưu số người thân: ' + name + ' (' + cleanPhone + ')');
+}
+
+function removeEmergencyContact(id){
+  try {
+    let custom = JSON.parse(localStorage.getItem(SOS_CONTACTS_KEY) || '[]');
+    custom = custom.filter(c => c.id !== id);
+    localStorage.setItem(SOS_CONTACTS_KEY, JSON.stringify(custom));
+  } catch(e){}
+  renderEmergencyContacts();
+  toast('Đã xóa số liên hệ người thân.');
+}
+
+window.addEventListener('DOMContentLoaded', renderEmergencyContacts);
+
+function openSosModal(contactId){
+  renderEmergencyContacts();
+  if(contactId){
+    const list = getEmergencyContacts();
+    const found = list.find(c => c.id === contactId);
+    const sel = $('sosTargetSelect');
+    if(found && sel){
+      const targetVal = found.phone ? `${found.name} (${found.phone})` : `${found.name} (chưa có SĐT)`;
+      if(Array.from(sel.options).some(o => o.value === targetVal)){
+        sel.value = targetVal;
+        updateSosCallLink();
+      }
+    }
+  }
   const modal = $('modalSos');
   if(!modal) return;
   modal.classList.add('show');
