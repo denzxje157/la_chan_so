@@ -4725,7 +4725,17 @@ async function generateScenarioFromUrl(){
     if(res.ok){
       const txt = await res.text();
       if(txt && txt.length > 80){
-        extractedText = txt.slice(0, 4500);
+        // Lọc sạch metadata Jina Reader (Title:, URL Source:, Published Time:, Markdown Content:, ![Image...])
+        extractedText = txt
+          .replace(/^Title:\s*/gim, '')
+          .replace(/^URL Source:.*$/gim, '')
+          .replace(/^Published Time:.*$/gim, '')
+          .replace(/^Markdown Content:\s*/gim, '')
+          .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim()
+          .slice(0, 4500);
       }
     }
   } catch(e){

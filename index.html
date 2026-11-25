@@ -4550,10 +4550,109 @@ function renderMap(){
 
 /* ============================================================ CHAT ENGINE */
 
+function sanitizeRoleplayMsgText(raw, s){
+  let txt = String(raw || '').trim();
+  // Loại bỏ metadata báo chí / Jina Reader nếu lỡ lưu thô từ Sheet
+  txt = txt
+    .replace(/^Title:\s*/i, '')
+    .replace(/URL Source:\s*https?:\/\/\S+/gi, '')
+    .replace(/Published Time:[^\n]*/gi, '')
+    .replace(/Markdown Content:\s*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const looksLikeArticleDump =
+    /^Title:/i.test(String(raw || '').trim()) ||
+    /^(Cảnh báo thủ đoạn|Công an cảnh báo|Cảnh giác thủ đoạn|Thủ đoạn mới|Báo Đồng Nai|Phòng PA05)/i.test(txt) ||
+    txt.length > 260;
+
+  if(looksLikeArticleDump){
+    const low = (txt + ' ' + (s && s.title || '') + ' ' + (s && s.tag || '')).toLowerCase();
+    if(low.includes('zalo') || low.includes('vay') || low.includes('mượn') || low.includes('deepfake') || low.includes('ai')){
+      return 'Chào {name}, máy kia của mình vừa bị lỗi. Mình đang có việc gấp ngoài đường, bạn [[chuyển khoản gấp cho mình mượn tạm 5 triệu]] vào STK này trong 15 phút được không? Lát về mình gửi lại ngay!';
+    }
+    if(low.includes('công an') || low.includes('vneid') || low.includes('viện kiểm sát') || low.includes('tòa án')){
+      return 'Chào {name}, tôi là [[Cán bộ Điều tra]]. Số CCCD của bạn đang [[liên quan đến hồ sơ vi phạm cần xác minh gấp]]. Tuyệt đối không kể với ai và làm theo hướng dẫn ngay!';
+    }
+    if(low.includes('việc') || low.includes('cộng tác') || low.includes('giật đơn') || low.includes('đầu tư')){
+      return 'Chào {name}, bên mình đang tuyển [[cộng tác viên online tại nhà, hoa hồng 200k–500k/ngày]]. Bạn [[nạp trước 500k làm nhiệm vụ đầu tiên]] để mở khóa hoa hồng nhé!';
+    }
+    return 'Chào {name}, hệ thống ghi nhận tài khoản của bạn đang có [[cảnh báo bảo mật khẩn cấp]]. Vui lòng [[bấm vào đường link xác minh ngay trong 10 phút]] để tránh bị khóa!';
+  }
+  return txt;
+}
+
+function isRawArticleDump(msgs, s){
+  if(!Array.isArray(msgs) || msgs.length === 0) return false;
+  const joined = msgs.map(m => String(m && m.text || '')).join('\n');
+  return /(^|\n)\s*(Title:|URL Source:|Published Time:|Markdown Content:|!\[Image)/i.test(joined) ||
+    msgs.some(m => m && m.f !== 'sys' && (
+      /^(Title:|URL Source:|Published Time:|Markdown Content:|!\[Image)/i.test(String(m.text || '').trim()) ||
+      /^(Công an TP|Công an tỉnh|Cảnh báo thủ đoạn|Báo Đồng Nai|Phòng PA05).{0,40}vừa phát đi/i.test(String(m.text || '').trim()) ||
+      String(m.text || '').length > 280
+    ));
+}
+
+function buildCleanRoleplayMsgs(s, rawContext){
+  const low = (String(rawContext || '') + ' ' + String(s && s.title || '') + ' ' + String(s && s.tag || '')).toLowerCase();
+  if(low.includes('zalo') || low.includes('vay') || low.includes('mượn') || low.includes('deepfake') || low.includes('ai')){
+    return [
+      { f: 'sys', text: 'Tin nhắn Zalo mới từ người quen (nhưng giọng/video hơi giật lag).' },
+      { f: 'them', text: 'Chào {name}, máy kia của mình vừa bị lỗi. Mình đang có việc gấp ngoài đường, bạn [[chuyển khoản gấp cho mình mượn tạm 5 triệu]] vào STK này trong 15 phút được không? Lát về mình gửi lại ngay!' }
+    ];
+  }
+  if(low.includes('công an') || low.includes('vneid') || low.includes('viện kiểm sát') || low.includes('tòa án')){
+    return [
+      { f: 'sys', text: 'Cuộc gọi Zalo từ tài khoản lạ tự xưng cán bộ cơ quan chức năng.' },
+      { f: 'them', text: 'Chào {name}, tôi là [[Cán bộ Điều tra]]. Số CCCD của bạn đang [[liên quan đến hồ sơ vi phạm cần xác minh gấp]]. Tuyệt đối không kể với ai và làm theo hướng dẫn ngay!' }
+    ];
+  }
+  if(low.includes('việc') || low.includes('cộng tác') || low.includes('giật đơn') || low.includes('đầu tư')){
+    return [
+      { f: 'sys', text: 'Tin nhắn mời làm cộng tác viên online thu nhập cao.' },
+      { f: 'them', text: 'Chào {name}, bên mình đang tuyển [[cộng tác viên online tại nhà, hoa hồng 200k–500k/ngày]]. Bạn [[nạp trước 500k làm nhiệm vụ đầu tiên]] để mở khóa hoa hồng nhé!' }
+    ];
+  }
+  return [
+    { f: 'sys', text: 'Tin nhắn cảnh báo bảo mật khẩn cấp từ đối tượng lạ.' },
+    { f: 'them', text: 'Chào {name}, hệ thống ghi nhận tài khoản của bạn đang có [[cảnh báo bảo mật khẩn cấp]]. Vui lòng [[bấm vào đường link xác minh ngay trong 10 phút]] để tránh bị khóa!' }
+  ];
+}
+
 function ensureScenarioSteps(s){
-  if(s && Array.isArray(s.steps) && s.steps.length > 0) return s;
+  if(!s || typeof s !== 'object') s = {};
+  if(!s.persona || typeof s.persona !== 'object') s.persona = { name: 'Đối tượng lạ', sub: 'Tài khoản mạng xã hội', av: '🚨' };
+  if(!s.persona.av) s.persona.av = '🚨';
+  if(!s.color) s.color = '#1E40AF';
+  if(!s.plat) s.plat = 'Zalo';
+
+  if(Array.isArray(s.steps) && s.steps.length > 0){
+    s.steps = s.steps.map((st) => {
+      if(isRawArticleDump(st.msgs, s)){
+        const rawCtx = (st.msgs || []).map(m => m && m.text || '').join(' ');
+        return { ...st, msgs: buildCleanRoleplayMsgs(s, rawCtx) };
+      }
+      const msgs = Array.isArray(st.msgs) ? st.msgs.map(m => ({
+        ...m,
+        f: (m && m.f) ? m.f : 'them',
+        text: (m && m.f === 'sys') ? String(m.text || '').trim() : sanitizeRoleplayMsgText(m && m.text, s)
+      })).filter(m => m.text) : buildCleanRoleplayMsgs(s, st.q);
+      return {
+        ...st,
+        msgs: msgs.length ? msgs : buildCleanRoleplayMsgs(s, st.q)
+      };
+    });
+    return s;
+  }
   // Tự động chuyển đổi nếu kịch bản từ AI / Cloud Sheet dùng cấu trúc tiers hoặc msgs+q+opts
-  const baseMsgs = Array.isArray(s.msgs) ? s.msgs : [{ f: 'them', text: s.q || 'Bạn vừa nhận được tin nhắn lạ đáng ngờ.' }];
+  const rawMsgs = Array.isArray(s.msgs) ? s.msgs : [{ f: 'them', text: s.q || 'Bạn vừa nhận được tin nhắn lạ đáng ngờ.' }];
+  const baseMsgs = isRawArticleDump(rawMsgs, s)
+    ? buildCleanRoleplayMsgs(s, rawMsgs.map(m => m && m.text || '').join(' '))
+    : rawMsgs.map(m => ({
+        ...m,
+        f: (m && m.f) ? m.f : 'them',
+        text: (m && m.f === 'sys') ? String(m.text || '').trim() : sanitizeRoleplayMsgText(m && m.text, s)
+      }));
   const tiers = Array.isArray(s.tiers) && s.tiers.length > 0 ? s.tiers : null;
   if(tiers){
     s.steps = tiers.map((tr, tIdx) => {
