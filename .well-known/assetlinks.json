@@ -1,8 +1,13 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "io.github.denzxje157.twa",
-        "sha256_cert_fingerprints": ["C6:F5:69:9C:82:FB:E9:9F:5C:7F:94:A8:1A:09:98:FF:C6:8E:59:9E:62:23:5C:5A:E7:4C:DB:EC:36:22:86:DA"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.denzxje157.twa",
+      "sha256_cert_fingerprints": [
+        "7E:A0:D1:A0:8C:42:70:80:1D:E2:E4:DE:9B:9E:87:0E:B0:56:FF:17:03:39:02:2C:1E:B7:92:77:99:81:2B:8C",
+        "C6:F5:69:9C:82:FB:E9:9F:5C:7F:94:A8:1A:09:98:FF:C6:8E:59:9E:62:23:5C:5A:E7:4C:DB:EC:36:22:86:DA"
+      ]
+    }
+  }
+]
