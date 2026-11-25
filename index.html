@@ -5886,7 +5886,7 @@ function applyNewsFilters(){
 const SOS_CONTACTS_KEY = 'cl101_emergency_contacts';
 
 function getDefaultRelativeContacts(){
-  const grp = (typeof S !== 'undefined' && S.group) ? S.group : (localStorage.getItem('cl101_group') || 'student');
+  const grp = (typeof selectedUserRole !== 'undefined' && selectedUserRole) || (typeof S !== 'undefined' && S.group) || localStorage.getItem('cl101_group') || 'student';
   if(grp === 'senior'){
     return [
       { id: 'def_son', name: 'Con trai', phone: '', isDefault: true },
@@ -5913,7 +5913,7 @@ function getEmergencyContacts(){
 
 function renderEmergencyContacts(){
   const list = getEmergencyContacts();
-  const grp = (typeof S !== 'undefined' && S.group) ? S.group : (localStorage.getItem('cl101_group') || 'student');
+  const grp = (typeof selectedUserRole !== 'undefined' && selectedUserRole) || (typeof S !== 'undefined' && S.group) || localStorage.getItem('cl101_group') || 'student';
 
   // Cập nhật lời nhắc & nội dung tin nhắn mẫu theo nhóm đối tượng chọn ở Trang chủ
   const msgEl = $('sosMessageBody');
