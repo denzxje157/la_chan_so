@@ -1,0 +1,26 @@
+{
+  "name": "Lá Chắn Số Đồng Nai - Chống Lừa 101",
+  "short_name": "Chống Lừa 101",
+  "description": "Ứng dụng luyện phản xạ chống lừa đảo, tra cứu SĐT/STK/Link giả mạo và báo cáo PA05 tỉnh Đồng Nai.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EFF6FF",
+  "theme_color": "#1E40AF",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
