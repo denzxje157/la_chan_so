@@ -1,5 +1,5 @@
-const CACHE_NAME = 'chonglua101-dn-v1';
-const ASSETS = ['./', './index.html', './manifest.json'];
+const CACHE_NAME = 'chonglua101-dn-v3';
+const ASSETS = ['./', './index.html', './manifest.json', './logo.png', './icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -9,7 +9,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
@@ -17,6 +21,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request, { cache: 'no-cache' })
+      .then((res) => {
+        if (res && res.status === 200 && event.request.method === 'GET') {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(event.request, copy)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
