@@ -519,6 +519,36 @@
   }
 
   /* ADMIN PRO POLISH */
+  .scenario-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+  }
+  .scenario-item-card {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.05);
+  }
+  .scenario-item-card:hover {
+    border-color: #93C5FD;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -8px rgba(30, 64, 175, 0.14);
+  }
+  .scen-persona-box {
+    background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%);
+    border: 1px solid #DBEAFE;
+    border-radius: 10px;
+    padding: 9px 11px;
+    margin: 8px 0 12px 0;
+    font-size: 11.5px;
+  }
   .panel, .kpi-card, .card {
     border-radius: 16px !important;
     box-shadow: 0 10px 28px -10px rgba(15, 23, 42, 0.08) !important;
@@ -1409,13 +1439,22 @@ button:active:not(:disabled), .btn:active:not(:disabled), .btn-action:active:not
 
         <!-- KHỐI 4: DANH SÁCH TẤT CẢ KỊCH BẢN ĐANG HOẠT ĐỘNG -->
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
             <div>
-              <h3 style="margin:0;font-size:16px;color:#0F172A">Danh Sách Tình Huống Đang Phát Hành</h3>
-              <small style="color:#64748B">Các kịch bản này hiển thị trực tiếp trên Bản đồ Thao trường trong ứng dụng di động của người dân</small>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:#0F172A">Danh Sách Tình Huống Đang Phát Hành</h3>
+                <span id="scenGridCountBadge" class="badge badge-blue" style="font-size:11px">0 tình huống</span>
+              </div>
+              <small style="color:#64748B;display:block;margin-top:2px">Các kịch bản này hiển thị trực tiếp trên Bản đồ Thao trường trong ứng dụng di động của người dân</small>
             </div>
-            <div style="display:flex;gap:8px">
-              <input type="text" id="scenSearchInput" oninput="filterAdminScenarios()" placeholder="Tìm kiếm kịch bản..." style="height:34px;border-radius:8px;border:1.5px solid #CBD5E1;padding:0 10px;font-size:12px;width:200px">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="search" id="scenSearchInput" oninput="filterAdminScenarios()" onsearch="filterAdminScenarios()" placeholder="🔍 Tìm kiếm kịch bản..." style="height:36px;border-radius:999px;border:1.5px solid #CBD5E1;padding:0 14px;font-size:12.5px;width:220px;outline:none">
+              <select id="scenDiffFilter" onchange="filterAdminScenarios()" class="select-ctrl" style="height:36px;border-radius:999px;font-size:12px">
+                <option value="all">Tất cả độ khó</option>
+                <option value="Dễ">Dễ</option>
+                <option value="Vừa">Vừa</option>
+                <option value="Rất khó">Rất khó</option>
+              </select>
             </div>
           </div>
 
@@ -4378,49 +4417,58 @@ function renderAdminScenarioGrid(list){
   const grid = document.getElementById('adminScenarioGrid');
   if(!grid) return;
 
+  const badgeEl = document.getElementById('scenGridCountBadge');
+  if(badgeEl) badgeEl.textContent = (list ? list.length : 0) + ' tình huống';
+
   grid.innerHTML = '';
+  if(!list || list.length === 0){
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:#64748B;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:14px;font-size:13px">Không tìm thấy tình huống nào phù hợp với bộ lọc hiện tại.</div>';
+    return;
+  }
+
   list.forEach((s, idx) => {
     const card = document.createElement('div');
     card.className = 'scenario-item-card';
     const isCustom = !s.isDefault;
+    const safeId = escHtml(s.id);
 
     card.innerHTML = `
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:36px;height:36px;border-radius:10px;background:${s.bg || '#EFF6FF'};color:${s.color || '#1E40AF'};display:flex;align-items:center;justify-content:center;font-size:18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1">
+            <div style="width:40px;height:40px;flex-shrink:0;border-radius:12px;background:${escHtml(s.bg || '#EFF6FF')};color:${escHtml(s.color || '#1E40AF')};display:flex;align-items:center;justify-content:center;font-size:19px;border:1px solid rgba(30,64,175,0.08)">
               ${s.icon || '🚨'}
             </div>
-            <div>
-              <b style="font-size:13.5px;color:#0F172A;line-height:1.2;display:block">${idx + 1}. ${s.title}</b>
-              <small style="color:#64748B;font-size:11px">${s.plat || 'Zalo'} · ${s.tag || 'Tình huống thực tế'}</small>
+            <div style="min-width:0;flex:1">
+              <b style="font-size:13.5px;color:#0F172A;line-height:1.3;display:block">${idx + 1}. ${escHtml(s.title)}</b>
+              <small style="color:#64748B;font-size:11px;display:block;margin-top:2px">${escHtml(s.plat || 'Zalo')} · ${escHtml(s.tag || 'Tình huống thực tế')}</small>
             </div>
           </div>
-          <span class="badge ${s.diff === 'Dễ' ? 'badge-green' : (s.diff === 'Rất khó' ? 'badge-red' : 'badge-amber')}" style="font-size:10px">
-            ${s.diff || 'Vừa'}
+          <span class="badge ${s.diff === 'Dễ' ? 'badge-green' : (s.diff === 'Rất khó' ? 'badge-red' : 'badge-amber')}" style="font-size:10px;flex-shrink:0">
+            ${escHtml(s.diff || 'Vừa')}
           </span>
         </div>
 
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11.5px">
-          <div style="color:#1E3A8A;font-weight:700">Kẻ mạo danh: ${s.persona ? s.persona.name : 'Ẩn danh'}</div>
-          <div style="color:#64748B;font-size:10.5px">${s.persona ? s.persona.sub : ''}</div>
+        <div class="scen-persona-box">
+          <div style="color:#1E3A8A;font-weight:700;margin-bottom:2px">Kẻ mạo danh: ${escHtml(s.persona ? s.persona.name : 'Ẩn danh')}</div>
+          <div style="color:#64748B;font-size:11px">${escHtml(s.persona ? s.persona.sub : '')}</div>
         </div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #F1F5F9;padding-top:10px;margin-top:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #F1F5F9;padding-top:10px;margin-top:4px;gap:6px;flex-wrap:wrap">
         <span class="badge ${isCustom ? 'badge-blue' : 'badge-sub'}" style="font-size:10px">
           ${isCustom ? '✨ Admin thêm' : 'Mặc định'}
         </span>
 
-        <div style="display:flex;gap:6px">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="previewAdminScenario('${s.id}')" style="font-size:11px;padding:3px 8px" title="Xem thử mô phỏng">
+        <div style="display:flex;gap:6px;align-items:center">
+          <button type="button" class="btn-action" onclick="previewAdminScenario('${safeId}')" style="font-size:11.5px;padding:4px 10px;height:30px" title="Xem thử mô phỏng">
             👁️ Xem thử
           </button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="editAdminScenario('${s.id}')" style="font-size:11px;padding:3px 8px;font-weight:700;color:#1E40AF" title="Sửa kịch bản">
+          <button type="button" class="btn-action btn-primary-action" onclick="editAdminScenario('${safeId}')" style="font-size:11.5px;padding:4px 10px;height:30px" title="Sửa kịch bản">
             ✏️ Sửa
           </button>
           ${isCustom ? `
-            <button type="button" class="btn btn-ghost btn-sm" onclick="deleteAdminScenario('${s.id}')" style="font-size:11px;padding:3px 8px;color:#DC2626" title="Xóa tình huống này">
+            <button type="button" class="btn-action" onclick="deleteAdminScenario('${safeId}')" style="font-size:11.5px;padding:4px 9px;height:30px;color:#DC2626;border-color:#FECACA" title="Xóa tình huống này">
               🗑️
             </button>
           ` : ''}
@@ -4431,16 +4479,22 @@ function renderAdminScenarioGrid(list){
   });
 }
 
-// Tìm kiếm kịch bản
+// Tìm kiếm & lọc kịch bản
 function filterAdminScenarios(){
-  const q = (document.getElementById('scenSearchInput') ? document.getElementById('scenSearchInput').value : '').toLowerCase().trim();
+  const qEl = document.getElementById('scenSearchInput');
+  const dEl = document.getElementById('scenDiffFilter');
+  const q = normSearchVN(qEl ? qEl.value : '');
+  const diff = dEl ? dEl.value : 'all';
   const list = getAdminScenarios();
-  if(!q){ renderAdminScenarioGrid(list); return; }
-  const filtered = list.filter(s => 
-    s.title.toLowerCase().includes(q) || 
-    (s.tag && s.tag.toLowerCase().includes(q)) || 
-    (s.persona && s.persona.name.toLowerCase().includes(q))
-  );
+  const filtered = list.filter(s => {
+    const matchQ = !q ||
+      normSearchVN(s.title).includes(q) ||
+      normSearchVN(s.tag).includes(q) ||
+      normSearchVN(s.plat).includes(q) ||
+      (s.persona && normSearchVN(s.persona.name).includes(q));
+    const matchDiff = diff === 'all' || (s.diff || 'Vừa') === diff;
+    return matchQ && matchDiff;
+  });
   renderAdminScenarioGrid(filtered);
 }
 
