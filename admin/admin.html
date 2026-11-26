@@ -609,7 +609,7 @@
       overflow-x: hidden !important;
     }
     .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-    .grid-2, .scenario-card-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .grid-2, .scenario-card-grid, .scraped-news-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
     .metric-card { padding: 12px !important; border-radius: 14px !important; }
     .metric-value { font-size: clamp(20px, 5.5vw, 26px) !important; }
     .metric-sub { flex-wrap: wrap; gap: 4px; font-size: 11px !important; }
@@ -711,6 +711,28 @@
     padding: 9px 11px;
     margin: 8px 0 12px 0;
     font-size: 11.5px;
+  }
+  .scraped-news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+  }
+  .scraped-news-card {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    box-shadow: 0 3px 10px -4px rgba(15, 23, 42, 0.06);
+  }
+  .scraped-news-card:hover {
+    border-color: #93C5FD;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px -8px rgba(30, 64, 175, 0.14);
   }
   .panel, .kpi-card, .card {
     border-radius: 16px !important;
@@ -1594,6 +1616,37 @@ button:active:not(:disabled), .btn:active:not(:disabled), .btn-action:active:not
           </form>
         </div>
 
+        <!-- KHỐI 3B: TIN TỨC BÁO CHÍ CÀO TỰ ĐỘNG (TRIGGER APPS SCRIPT - TinTucCanhBao) -->
+        <div class="card" id="scrapedNewsCard" style="margin-bottom:18px;border:1.5px solid #BFDBFE">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:#0F172A">Tin Tức An Ninh Mạng Cào Tự Động (Trigger Sheet)</h3>
+                <span id="scrapedNewsCountBadge" class="badge badge-blue" style="font-size:11px">Đang tải...</span>
+              </div>
+              <small style="color:#64748B;display:block;margin-top:2px">Nguồn đồng bộ từ tab <b>TinTucCanhBao</b> (Trigger RSS VnExpress, Công an Đồng Nai, Báo Đồng Nai) — 1 chạm chuyển thành Kịch bản 3 tầng hoặc Cảnh báo Khẩn</small>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button type="button" class="btn-action" id="btnRefreshScrapedNews" onclick="fetchScrapedNewsAdmin(true)">🔄 Tải lại từ Sheet</button>
+              <button type="button" class="btn-action btn-primary-action" id="btnTriggerScrapeNow" onclick="triggerScrapeNewsNow()">⚡ Kích hoạt Quét RSS Ngay</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+            <input type="search" id="scrapedNewsSearch" oninput="renderScrapedNewsGrid()" onsearch="renderScrapedNewsGrid()" placeholder="🔍 Tìm tiêu đề hoặc tóm tắt bài báo..." class="search-input" style="flex:1;min-width:220px">
+            <select id="scrapedNewsSourceFilter" onchange="renderScrapedNewsGrid()" class="select-ctrl">
+              <option value="all">Tất cả nguồn báo</option>
+              <option value="VnExpress Pháp luật">VnExpress Pháp luật</option>
+              <option value="Công an Đồng Nai">Công an Đồng Nai</option>
+              <option value="Báo Đồng Nai">Báo Đồng Nai</option>
+            </select>
+          </div>
+
+          <div class="scraped-news-grid" id="scrapedNewsGrid">
+            <div style="grid-column:1/-1;text-align:center;padding:24px;color:#64748B;font-size:13px">Đang kết nối Google Sheet (tab TinTucCanhBao)...</div>
+          </div>
+        </div>
+
         <!-- KHỐI 4: DANH SÁCH TẤT CẢ KỊCH BẢN ĐANG HOẠT ĐỘNG -->
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
@@ -2275,6 +2328,7 @@ function switchTab(tabId, btn){
 
   if(tabId === 'scenarios'){
     updateScenariosUI();
+    fetchScrapedNewsAdmin(false);
   }
   if(tabId === 'sheets'){
     syncWithGoogleSheetReal(false, false);
@@ -5405,6 +5459,127 @@ async function openAddBlacklistModal(){
   } catch(e){
     if(String(e && e.message) !== '401 Unauthorized') toast('Đã lưu tạm đối tượng vào danh sách!');
   }
+}
+
+let liveScrapedNews = [];
+
+async function fetchScrapedNewsAdmin(userTriggered = false){
+  const grid = document.getElementById('scrapedNewsGrid');
+  const badge = document.getElementById('scrapedNewsCountBadge');
+  if(userTriggered && badge) badge.textContent = 'Đang tải...';
+  try {
+    const res = await fetch(activeSheetEndpoint + (activeSheetEndpoint.includes('?')?'&':'?') + 'action=get_news&t=' + Date.now(), { cache: 'no-store' });
+    if(res.ok){
+      const data = await res.json();
+      if(Array.isArray(data)){
+        liveScrapedNews = data;
+        try { localStorage.setItem('cl101_scraped_news_cache', JSON.stringify(data)); } catch(e){}
+      }
+    }
+  } catch(e){
+    try {
+      const cached = JSON.parse(localStorage.getItem('cl101_scraped_news_cache') || '[]');
+      if(Array.isArray(cached)) liveScrapedNews = cached;
+    } catch(err){}
+  }
+  renderScrapedNewsGrid();
+  if(userTriggered) toast('✅ Đã nạp ' + liveScrapedNews.length + ' bài báo mới nhất từ Trigger Google Sheet!');
+}
+
+async function triggerScrapeNewsNow(){
+  const btn = document.getElementById('btnTriggerScrapeNow');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Đang quét RSS & Báo Đồng Nai...'; }
+  try {
+    const res = await fetch(activeSheetEndpoint + (activeSheetEndpoint.includes('?')?'&':'?') + 'action=fetch_news_now&t=' + Date.now(), { cache: 'no-store' });
+    let added = 0;
+    if(res.ok){
+      const d = await res.json();
+      added = Number(d && d.added || 0);
+    }
+    await fetchScrapedNewsAdmin(false);
+    toast(added > 0
+      ? `⚡ Trigger đã cào thêm ${added} bài báo mới nhất vào Google Sheet!`
+      : '✅ Đã chạy Trigger quét RSS! Danh sách tin tức đã cập nhật mới nhất.');
+  } catch(e){
+    toast('⚠️ Không thể kết nối Apps Script để kích hoạt Trigger!');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '⚡ Kích hoạt Quét RSS Ngay'; }
+  }
+}
+
+function renderScrapedNewsGrid(){
+  const grid = document.getElementById('scrapedNewsGrid');
+  const badge = document.getElementById('scrapedNewsCountBadge');
+  if(!grid) return;
+
+  const q = normSearchVN((document.getElementById('scrapedNewsSearch') || {}).value || '');
+  const srcFilter = (document.getElementById('scrapedNewsSourceFilter') || {}).value || 'all';
+
+  const filtered = liveScrapedNews.filter(item => {
+    const matchQ = !q || normSearchVN(item.title).includes(q) || normSearchVN(item.summary).includes(q);
+    const matchSrc = srcFilter === 'all' || String(item.source || '').toLowerCase() === srcFilter.toLowerCase();
+    return matchQ && matchSrc;
+  });
+
+  if(badge) badge.textContent = filtered.length + ' bài báo';
+
+  if(filtered.length === 0){
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:28px;color:#64748B;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:12px;font-size:13px">Chưa có bài báo nào khớp bộ lọc. Hãy bấm <b>⚡ Kích hoạt Quét RSS Ngay</b> để kéo tin mới từ Trigger!</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map((item) => {
+    const origIdx = liveScrapedNews.indexOf(item);
+    const imgHtml = item.imageUrl
+      ? `<img src="${escHtml(item.imageUrl)}" alt="Ảnh minh họa" style="width:100%;height:140px;object-fit:cover;background:#EFF6FF" onerror="this.style.display='none'">`
+      : '';
+    return `
+      <div class="scraped-news-card">
+        <div>
+          ${imgHtml}
+          <div style="padding:14px 14px 8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+              <span class="badge badge-blue" style="font-size:10px">${escHtml(item.source || 'Báo chí')}</span>
+              <span class="mono" style="font-size:10.5px;color:#64748B">${escHtml(item.publishedDate || 'Mới cào')}</span>
+            </div>
+            <b style="display:block;font-size:13.5px;color:#0F172A;line-height:1.35;margin-bottom:6px">${escHtml(item.title)}</b>
+            <p style="margin:0;font-size:12px;color:#475569;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${escHtml(item.summary || 'Bấm Tạo Tình huống để AI chuyển thể bài báo này thành kịch bản nhập vai 3 tầng.')}</p>
+          </div>
+        </div>
+        <div style="padding:10px 14px 14px;border-top:1px solid #F1F5F9;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="btn-action btn-primary-action" style="flex:1;min-width:130px;font-size:11.5px;padding:6px 10px;height:34px" onclick="convertScrapedNewsToScenario(${origIdx})">🤖 Tạo Tình huống</button>
+          <button type="button" class="btn-action" style="font-size:11.5px;padding:6px 10px;height:34px;color:#DC2626;border-color:#FECACA" onclick="broadcastScrapedNews(${origIdx})" title="Đưa bài báo này vào mục Phát thanh Khẩn cấp">📢 Cảnh báo</button>
+          ${item.url ? `<a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="btn-action" style="font-size:11.5px;padding:6px 10px;height:34px;text-decoration:none">🔗 Đọc gốc</a>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function convertScrapedNewsToScenario(idx){
+  const item = liveScrapedNews[idx];
+  if(!item) return;
+  const urlBox = document.getElementById('aiUrlInput');
+  const caseBox = document.getElementById('aiCaseInput');
+  const statusEl = document.getElementById('aiGenStatus');
+  if(urlBox) urlBox.value = item.url || '';
+  if(caseBox) caseBox.value = (item.title || '') + '\n' + (item.summary || '');
+  if(statusEl) statusEl.textContent = '🤖 Đang chuyển thể bài báo "' + item.title + '" thành kịch bản 3 tầng...';
+  const aiCard = document.getElementById('aiCaseInput');
+  if(aiCard) aiCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  await generateScenarioWithAI(item.url || '');
+}
+
+function broadcastScrapedNews(idx){
+  const item = liveScrapedNews[idx];
+  if(!item) return;
+  const tEl = document.getElementById('bcTitle');
+  const cEl = document.getElementById('bcContent');
+  if(tEl) tEl.value = 'CẢNH BÁO TỪ ' + String(item.source || 'BÁO CHÍ').toUpperCase();
+  if(cEl) cEl.value = (item.title || '') + (item.summary ? ' — ' + item.summary : '');
+  const bcNav = document.querySelector('.sidebar .nav-btn[onclick*="broadcast"]');
+  switchTab('broadcast', bcNav);
+  toast('📢 Đã nạp nội dung bài báo vào khung Phát thanh Khẩn cấp — bấm Phát Thông Báo Ngay để gửi xuống App Dân!');
 }
 
 async function fetchReportsFromSheet(skipKpi = false){
